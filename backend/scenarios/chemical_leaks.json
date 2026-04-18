@@ -1,0 +1,31 @@
+{
+  "name": "chemical_leak",
+  "display_name": "Industrial Chemical Leak",
+  "grid": [
+    [0,0,0,0,0,0,0,0,0,0],
+    [0,0,1,0,0,0,0,0,4,0],
+    [0,0,0,0,0,2,2,0,0,0],
+    [0,0,4,0,2,2,2,2,0,0],
+    [0,0,0,2,2,1,2,2,0,0],
+    [0,0,0,2,2,2,2,2,0,0],
+    [0,1,0,0,2,2,2,0,0,0],
+    [0,0,0,0,0,2,0,0,1,0],
+    [0,4,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,4]
+  ],
+  "civilians": [
+    { "id": 1, "pos": [4,5], "health": 5, "status": "critical" },
+    { "id": 2, "pos": [3,4], "health": 15, "status": "critical" },
+    { "id": 3, "pos": [6,4], "health": 22, "status": "critical" },
+    { "id": 4, "pos": [1,2], "health": 40, "status": "stable" },
+    { "id": 5, "pos": [8,1], "health": 65, "status": "stable" },
+    { "id": 6, "pos": [7,8], "health": 80, "status": "stable" },
+    { "id": 7, "pos": [2,6], "health": 55, "status": "stable" },
+    { "id": 8, "pos": [9,9], "health": 90, "status": "stable" }
+  ],
+  "resources": {
+    "medical_teams": 2,
+    "rescue_units": 2,
+    "supply_caches": 3
+  }
+}
