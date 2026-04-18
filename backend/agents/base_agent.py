@@ -47,27 +47,36 @@ class BaseAgent:
 
         collapsed_cells = [(r,c) for r in range(10) for c in range(10) if state["grid"][r][c] == 1]
         fire_cells      = [(r,c) for r in range(10) for c in range(10) if state["grid"][r][c] == 2]
+        cache_cells     = [(r,c) for r in range(10) for c in range(10) if state["grid"][r][c] == 4]
 
         def zone(pos):
             return f"{chr(65+pos[1])}{pos[0]}"
 
         crit_str = ", ".join([f"Civilian {c['id']} at {zone(c['pos'])} (health {c['health']})" for c in critical]) or "none"
         stable_str = ", ".join([f"Civilian {c['id']} at {zone(c['pos'])} (health {c['health']})" for c in stable]) or "none"
+        
+        display_name = state.get("display_name", state.get("name", "Unknown Scenario"))
 
-        return f"""TICK {state['tick']} DISASTER STATE:
+        return f"""SCENARIO: {display_name}
+TICK {state['tick']} DISASTER STATE:
 
 Critical civilians: {crit_str}
 Stable civilians: {stable_str}
 Dead: {len(dead)}
 
-Resources remaining:
+Resources remaining (in HQ):
 - Medical teams: {state['resources']['medical_teams']}
 - Rescue units: {state['resources']['rescue_units']}
-- Supply caches: {state['resources']['supply_caches']}
+- Supply caches (ready to drop): {state['resources']['supply_caches']}
 
-Collapsed zones: {[zone(list(p)) for p in collapsed_cells] or 'none'}
-Fire zones: {[zone(list(p)) for p in fire_cells] or 'none'}
-Active units deployed: {len(state['active_units'])}
+GRID LANDMARKS:
+- Collapsed zones: {[zone(list(p)) for p in collapsed_cells] or 'none'}
+- Fire zones: {[zone(list(p)) for p in fire_cells] or 'none'}
+- Resource Caches (on the ground): {[zone(list(p)) for p in cache_cells] or 'none'}
+- Active units deployed: {len(state['active_units'])}
+
+GRID VALUE LEGEND:
+0=empty, 1=collapsed, 2=fire, 3=civilian, 4=resource cache, 5=active unit
 
 You must respond with ONLY a JSON object, no other text:
 {{

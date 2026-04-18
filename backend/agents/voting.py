@@ -24,14 +24,20 @@ class VotingEngine:
 
         margin = top["priority_score"] - second["priority_score"]
 
+        # RULES FOR RESOLUTION
         if is_unanimous:
             resolution = "unanimous"
             winner_vote = top
-        elif margin > 0.15:
+        elif top["priority_score"] >= 0.9:
+            # URGENCY OVERRIDE: High priority actions win immediately, skipping tiebreak
+            resolution = "urgency_override"
+            winner_vote = top
+        elif margin > 0.05:
+            # DECISIVE WIN: Winner has a clear lead (> 0.05)
             resolution = "highest_score"
             winner_vote = top
         else:
-            # Tiebreak — use MELCHIOR's vote
+            # TIEBREAK: If extremely close, use MELCHIOR as the definitive voice
             melchior_vote = next((v for v in votes if v["agent"] == "MELCHIOR"), top)
             resolution = "tiebreak"
             winner_vote = melchior_vote
