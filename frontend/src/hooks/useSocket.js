@@ -1,88 +1,34 @@
-import { useEffect, useState, useCallback } from 'react';
-import { socket } from '../socket';
+import { useState, useEffect } from "react"
+import socket from "../socket"
 
 export function useSocket() {
-  const [isConnected, setIsConnected] = useState(false);
-  const [stateUpdate, setStateUpdate] = useState(null);
-  const [voteResult, setVoteResult] = useState(null);
-  const [activeScenario, setActiveScenario] = useState(null);
-  const [error, setError] = useState(null);
+  const [gridState, setGridState]     = useState(null)
+  const [voteResult, setVoteResult]   = useState(null)
+  const [voteHistory, setVoteHistory] = useState([])
+  const [connected, setConnected]     = useState(false)
+  const [scenario, setScenario]       = useState(null)
 
   useEffect(() => {
-    socket.connect();
-
-    function onConnect() {
-      setIsConnected(true);
-    }
-
-    function onDisconnect() {
-      setIsConnected(false);
-    }
-
-    function onStateUpdate(data) {
-      setStateUpdate(data);
-    }
-
-    function onVoteResult(data) {
-      setVoteResult(data);
-    }
-
-    function onScenarioLoaded(scenario) {
-      setActiveScenario(scenario);
-    }
-
-    function onError(err) {
-      setError(err?.message || 'Unknown error');
-    }
-
-    socket.on('connect', onConnect);
-    socket.on('disconnect', onDisconnect);
-    socket.on('state_update', onStateUpdate);
-    socket.on('vote_result', onVoteResult);
-    socket.on('scenario_loaded', onScenarioLoaded);
-    socket.on('error', onError);
-
-    return () => {
-      socket.off('connect', onConnect);
-      socket.off('disconnect', onDisconnect);
-      socket.off('state_update', onStateUpdate);
-      socket.off('vote_result', onVoteResult);
-      socket.off('scenario_loaded', onScenarioLoaded);
-      socket.off('error', onError);
-      socket.disconnect();
-    };
-  }, []);
-
-  const loadScenario = useCallback((scenario) => {
-    socket.emit('load_scenario', { scenario });
-  }, []);
-
-  const triggerEvent = useCallback((event) => {
-    socket.emit('trigger_event', { event });
-  }, []);
-
-  const pause = useCallback(() => {
-    socket.emit('pause');
-  }, []);
-
-  const resume = useCallback(() => {
-    socket.emit('resume');
-  }, []);
-
-  const reset = useCallback(() => {
-    socket.emit('reset');
-  }, []);
+    socket.on("connect",         () => setConnected(true))
+    socket.on("disconnect",      () => setConnected(false))
+    socket.on("state_update",    (d) => setGridState(d))
+    socket.on("vote_result",     (d) => {
+      setVoteResult(d)
+      setVoteHistory(h => [...h, d].slice(-20))
+    })
+    socket.on("scenario_loaded", (n) => {
+      setScenario(n)
+      setVoteHistory([])
+    })
+    return () => socket.removeAllListeners()
+  }, [])
 
   return {
-    isConnected,
-    stateUpdate,
-    voteResult,
-    activeScenario,
-    error,
-    loadScenario,
-    triggerEvent,
-    pause,
-    resume,
-    reset,
-  };
+    gridState, voteResult, voteHistory, connected, scenario,
+    loadScenario:  (name)  => socket.emit("load_scenario",  { scenario: name }),
+    triggerEvent:  (event) => socket.emit("trigger_event",  { event }),
+    pause:         ()      => socket.emit("pause"),
+    resume:        ()      => socket.emit("resume"),
+    reset:         ()      => { socket.emit("reset"); setGridState(null); setVoteResult(null); setVoteHistory([]); setScenario(null) }
+  }
 }

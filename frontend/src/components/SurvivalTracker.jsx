@@ -1,50 +1,42 @@
-import React from 'react';
+import React from "react";
 
-export default function SurvivalTracker({ state }) {
-  const resources = state?.resources || { medical_teams: 0, rescue_units: 0, supply_caches: 0 };
-  const civilians = state?.civilians || [];
+export default function SurvivalTracker({ civilians }) {
+  if (!civilians) civilians = [];
   
-  const alive = civilians.filter(c => c.health > 0).length;
-  const dead = civilians.filter(c => c.health <= 0).length;
-  const crit = civilians.filter(c => c.health > 0 && c.status === 'critical').length;
-  const survivalRate = state?.survival_rate !== undefined ? state.survival_rate * 100 : 0;
+  const total = civilians.length;
+  const aliveItems = civilians.filter(c => c.health > 0);
+  const alive = aliveItems.length;
+  const dead = total - alive;
+  const critical = aliveItems.filter(c => c.health < 30).length;
   
-  const barClass = survivalRate > 60 ? 'teal' : survivalRate > 40 ? 'amber' : 'red';
+  const survivalRate = total > 0 ? Math.round((alive / total) * 100) : 100;
+  
+  let barColorClass = "bg-teal shadow-[0_0_6px_var(--color-teal)]";
+  if (survivalRate < 40) barColorClass = "bg-danger";
+  else if (survivalRate < 75) barColorClass = "bg-warning";
 
   return (
     <>
-      <div className="section-label">RESOURCES</div>
-
-      <div className="resource-row">
-        <div className="resource-label"><span className="resource-icon">+</span> MEDICAL TEAMS</div>
-        <div className={`resource-value ${resources.medical_teams === 0 ? 'depleted' : resources.medical_teams === 1 ? 'low' : ''}`}>
-          {resources.medical_teams}
+      <div className="font-mono-custom text-[9px] tracking-[3px] text-muted px-3.5 pt-3.5 pb-1.5 uppercase border-b border-navyBorder mt-2">SURVIVAL RATE</div>
+      <div className="p-3 border-b border-navyBorder">
+        <div className="font-data text-[36px] font-bold text-teal leading-none mb-1">{survivalRate}%</div>
+        <div className="font-mono-custom text-[9px] text-muted tracking-[2px] mb-2">CIVILIANS ALIVE</div>
+        <div className="h-[3px] bg-navyBorder rounded-[2px] overflow-hidden">
+          <div className={`h-full rounded-[2px] transition-[width] duration-800 ease-in-out ${barColorClass}`} style={{ width: `${survivalRate}%` }}></div>
         </div>
-      </div>
-      <div className="resource-row">
-        <div className="resource-label"><span className="resource-icon">⬡</span> RESCUE UNITS</div>
-        <div className={`resource-value ${resources.rescue_units === 0 ? 'depleted' : resources.rescue_units === 1 ? 'low' : ''}`}>
-          {resources.rescue_units}
-        </div>
-      </div>
-      <div className="resource-row">
-        <div className="resource-label"><span className="resource-icon">■</span> SUPPLY CACHES</div>
-        <div className={`resource-value ${resources.supply_caches === 0 ? 'depleted' : resources.supply_caches === 1 ? 'low' : ''}`}>
-          {resources.supply_caches}
-        </div>
-      </div>
-
-      <div className="section-label">SURVIVAL RATE</div>
-      <div className="survival-block">
-        <div className="survival-number">{Math.round(survivalRate)}%</div>
-        <div className="survival-label">CIVILIANS ALIVE</div>
-        <div className="bar-track">
-          <div className={`bar-fill ${barClass}`} style={{ width: `${Math.round(survivalRate)}%` }}></div>
-        </div>
-        <div className="survival-stats">
-          <div className="stat-cell g"><div className="stat-num">{alive}</div><div className="stat-name">ALIVE</div></div>
-          <div className="stat-cell a"><div className="stat-num">{crit}</div><div className="stat-name">CRIT</div></div>
-          <div className="stat-cell r"><div className="stat-num">{dead}</div><div className="stat-name">DEAD</div></div>
+        <div className="grid grid-cols-3 gap-1 mt-2">
+          <div className="text-center py-1 bg-navyMid border border-navyBorder rounded-sm group">
+            <div className="font-data text-[15px] font-bold text-success">{alive}</div>
+            <div className="font-mono-custom text-[8px] text-muted tracking-[1px]">ALIVE</div>
+          </div>
+          <div className="text-center py-1 bg-navyMid border border-navyBorder rounded-sm group">
+            <div className="font-data text-[15px] font-bold text-warning">{critical}</div>
+            <div className="font-mono-custom text-[8px] text-muted tracking-[1px]">CRIT</div>
+          </div>
+          <div className="text-center py-1 bg-navyMid border border-navyBorder rounded-sm group">
+            <div className="font-data text-[15px] font-bold text-danger">{dead}</div>
+            <div className="font-mono-custom text-[8px] text-muted tracking-[1px]">DEAD</div>
+          </div>
         </div>
       </div>
     </>
