@@ -43,8 +43,8 @@ export default function App() {
           <ScenarioSelector onLoad={sock.loadScenario} current={sock.scenario} />
 
           <>
-            <div className="font-mono-custom text-[9px] tracking-[3px] text-muted px-3.5 pt-3.5 pb-1.5 uppercase border-b border-navyBorder mt-2">RESOURCES</div>
-            <div className="flex items-center justify-between py-2 px-3.5 border-b border-navyBorder">
+            <div className="shrink-0 font-mono-custom text-[9px] tracking-[3px] text-muted px-3.5 pt-3.5 pb-1.5 uppercase border-b border-navyBorder mt-2">RESOURCES</div>
+            <div className="shrink-0 flex items-center justify-between py-2 px-3.5 border-b border-navyBorder">
               <div className="font-mono-custom text-[9px] text-muted tracking-[1px] flex items-center gap-1.5">
                 <span className="text-[11px]">+</span> MEDICAL TEAMS
               </div>
@@ -52,7 +52,7 @@ export default function App() {
                 {sock.gridState?.resources?.medical_teams ?? 0}
               </div>
             </div>
-            <div className="flex items-center justify-between py-2 px-3.5 border-b border-navyBorder">
+            <div className="shrink-0 flex items-center justify-between py-2 px-3.5 border-b border-navyBorder">
               <div className="font-mono-custom text-[9px] text-muted tracking-[1px] flex items-center gap-1.5">
                 <span className="text-[11px]">⬡</span> RESCUE UNITS
               </div>
@@ -60,7 +60,7 @@ export default function App() {
                 {sock.gridState?.resources?.rescue_units ?? 0}
               </div>
             </div>
-            <div className="flex items-center justify-between py-2 px-3.5 border-b border-navyBorder">
+            <div className="shrink-0 flex items-center justify-between py-2 px-3.5 border-b border-navyBorder">
               <div className="font-mono-custom text-[9px] text-muted tracking-[1px] flex items-center gap-1.5">
                 <span className="text-[11px]">■</span> SUPPLY CACHES
               </div>
