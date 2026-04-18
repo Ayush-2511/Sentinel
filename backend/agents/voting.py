@@ -13,7 +13,8 @@ class VotingEngine:
 
         # Check if all votes are identical (Unanimous)
         actions = [v["proposed_action"] for v in votes]
-        targets = [v.get("target_zone") for v in votes]
+        # Convert list targets to tuples to make them hashable for set()
+        targets = [tuple(v.get("target_zone")) if isinstance(v.get("target_zone"), list) else v.get("target_zone") for v in votes]
         
         is_unanimous = len(set(actions)) == 1 and len(set(targets)) == 1
         

@@ -29,7 +29,6 @@ class BaseAgent:
             ])
             return self._parse_response(response.content, state["tick"])
         except Exception as e:
-            # Fallback vote — never crash the tick loop
             return {
                 "agent": self.__class__.__name__.upper(),
                 "proposed_action": "hold",
@@ -41,57 +40,57 @@ class BaseAgent:
             }
 
     def _build_prompt(self, state: dict) -> str:
-        critical = [c for c in state["civilians"] if c["status"] == "critical" and c["health"] > 0]
-        stable   = [c for c in state["civilians"] if c["status"] == "stable"   and c["health"] > 0]
-        dead     = [c for c in state["civilians"] if c["health"] <= 0]
-
-        collapsed_cells = [(r,c) for r in range(10) for c in range(10) if state["grid"][r][c] == 1]
-        fire_cells      = [(r,c) for r in range(10) for c in range(10) if state["grid"][r][c] == 2]
-        cache_cells     = [(r,c) for r in range(10) for c in range(10) if state["grid"][r][c] == 4]
-
-        def zone(pos):
-            return f"{chr(65+pos[1])}{pos[0]}"
-
-        crit_str = ", ".join([f"Civilian {c['id']} at {zone(c['pos'])} (health {c['health']})" for c in critical]) or "none"
-        stable_str = ", ".join([f"Civilian {c['id']} at {zone(c['pos'])} (health {c['health']})" for c in stable]) or "none"
+        """Build a clean, concise prompt with only unsaved civilian data."""
         
-        display_name = state.get("display_name", state.get("name", "Unknown Scenario"))
+        # Only include unsaved, living civilians
+        unsaved = [c for c in state["civilians"] if c["health"] > 0 and not c.get("saved")]
+        saved = [c for c in state["civilians"] if c.get("saved")]
+        dead = [c for c in state["civilians"] if c["health"] <= 0]
+        
+        # Build civilian status lines
+        civ_lines = []
+        for c in unsaved:
+            hurt_rate = c.get("hurt_rate", 0)
+            civ_lines.append(
+                f"  - Civilian #{c['id']} at position [{c['pos'][0]},{c['pos'][1]}], "
+                f"HP: {c['health']}, Status: {c['status']}, "
+                f"Losing {hurt_rate} HP/tick"
+            )
+        
+        civ_str = "\n".join(civ_lines) if civ_lines else "  None — all civilians accounted for"
+        
+        return f"""DISASTER SITUATION — Tick {state['tick']}
 
-        return f"""SCENARIO: {display_name}
-TICK {state['tick']} DISASTER STATE:
+FIRE is spreading on a 10x10 grid. Civilians are losing health based on their proximity to fire.
+Closer civilians lose health FASTER.
 
-Critical civilians: {crit_str}
-Stable civilians: {stable_str}
-Dead: {len(dead)}
+CIVILIANS STILL IN DANGER:
+{civ_str}
 
-Resources remaining (in HQ):
-- Medical teams: {state['resources']['medical_teams']}
-- Rescue units: {state['resources']['rescue_units']}
-- Supply caches (ready to drop): {state['resources']['supply_caches']}
+ALREADY SAVED: {len(saved)} civilian(s)
+DEAD: {len(dead)} civilian(s)
 
-GRID LANDMARKS:
-- Collapsed zones: {[zone(list(p)) for p in collapsed_cells] or 'none'}
-- Fire zones: {[zone(list(p)) for p in fire_cells] or 'none'}
-- Resource Caches (on the ground): {[zone(list(p)) for p in cache_cells] or 'none'}
-- Active units deployed: {len(state['active_units'])}
+AVAILABLE RESOURCES:
+- Medical teams: {state['resources']['medical_teams']} (use dispatch_medical to SAVE a civilian)
+- Supply caches: {state['resources']['supply_caches']} (use dispatch_supply to extinguish fire)
 
-GRID VALUE LEGEND:
-0=empty, 1=collapsed, 2=fire, 3=civilian, 4=resource cache, 5=active unit
+RULES:
+- dispatch_medical saves a civilian permanently (removes them from danger)
+- dispatch_supply extinguishes fire in a 3x3 area around the worst blaze
+- You MUST specify target_civilian_id when using dispatch_medical
+- Choose the civilian who needs help MOST URGENTLY
 
-You must respond with ONLY a JSON object, no other text:
+Respond with ONLY this JSON:
 {{
-  "proposed_action": "dispatch_medical" | "dispatch_rescue" | "dispatch_supply" | "hold",
-  "target_zone": "A0" to "J9" or null,
-  "target_civilian_id": number or null,
-  "reasoning": "one sentence explanation",
+  "proposed_action": "dispatch_medical" | "dispatch_supply" | "hold",
+  "target_civilian_id": <civilian id number or null>,
+  "reasoning": "one sentence",
   "priority_score": 0.0 to 1.0
 }}"""
 
     def _parse_response(self, text: str, tick: int) -> dict:
-        # Extract JSON from response
         match = re.search(r'\{.*?\}', text, re.DOTALL)
         if not match:
-            # Try to see if it's just raw JSON without markdown
             try:
                 data = json.loads(text)
             except:
