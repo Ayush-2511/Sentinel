@@ -7,11 +7,29 @@ import SurvivalTracker from "./components/SurvivalTracker"
 import EventControls from "./components/EventControls"
 import ScenarioSelector from "./components/ScenarioSelector"
 
+const MOCK_LOG = [
+  { tick: 1, winner: 'CASPER',    action: 'DISPATCH MEDICAL',  zone: 'C4', was_tiebreak: false },
+  { tick: 2, winner: 'BALTHASAR', action: 'DISPATCH RESCUE',   zone: 'B7', was_tiebreak: false },
+  { tick: 3, winner: 'MELCHIOR',  action: 'DISPATCH SUPPLY',   zone: 'D2', was_tiebreak: true  },
+  { tick: 4, winner: 'CASPER',    action: 'DISPATCH MEDICAL',  zone: 'A1', was_tiebreak: false },
+  { tick: 5, winner: 'BALTHASAR', action: 'EVACUATE',          zone: 'E9', was_tiebreak: false },
+];
+
 export default function App() {
   const sock = useSocket()
 
-  // Fake tick data if no backend connection
   const tick = sock.gridState?.tick || 0;
+
+  // Build decision log from live vote history, fall back to mock when disconnected
+  const decisionLog = sock.voteHistory.length > 0
+    ? sock.voteHistory.slice(-5).reverse().map(v => ({
+        tick: v.tick,
+        winner: v.winner,
+        action: v.votes?.find(x => x.agent === v.winner)?.proposed_action?.replace('dispatch_', 'DISPATCH ').toUpperCase() || 'ACTION',
+        zone: v.votes?.find(x => x.agent === v.winner)?.target_zone || '?',
+        was_tiebreak: v.was_tiebreak,
+      }))
+    : MOCK_LOG.slice().reverse();
 
   return (
     <>
@@ -95,11 +113,58 @@ export default function App() {
 
           <Grid gridState={sock.gridState} />
 
-          <VoteHistory history={sock.voteHistory} />
+          {/* DECISION LOG */}
+          <div className="shrink-0 border-t border-navyBorder bg-navyCard" style={{height:'112px'}}>
+            <div className="flex items-center justify-between px-4 py-1.5 border-b border-navyBorder">
+              <span className="font-mono-custom text-[9px] tracking-[3px] text-muted uppercase">Decision Log</span>
+              <span className="font-mono-custom text-[8px] tracking-[2px] text-teal opacity-60">LAST 5 ACTIONS</span>
+            </div>
+            <div className="overflow-y-auto" style={{height:'80px'}}>
+              {decisionLog.map((entry, i) => {
+                const agentColor = entry.winner === 'CASPER' ? 'text-danger' : entry.winner === 'MELCHIOR' ? 'text-warning' : 'text-teal';
+                const isLatest = i === 0;
+                return (
+                  <div
+                    key={i}
+                    className={`flex items-center gap-2 px-4 border-b transition-colors hover:bg-navyMid
+                      ${isLatest
+                        ? 'py-[5px] bg-[#0A1E2E] border-l-2 border-l-teal border-navyBorder'
+                        : 'py-[3px] border-l-2 border-l-transparent border-navyBorder/40 opacity-70'
+                      }`}
+                  >
+                    <span className={`font-mono-custom shrink-0 min-w-[52px] ${isLatest ? 'text-[10px] text-teal' : 'text-[9px] text-muted'}`}>
+                      TICK {entry.tick}
+                    </span>
+                    <span className={`font-mono-custom font-bold shrink-0 min-w-[76px] ${agentColor} ${isLatest ? 'text-[10px]' : 'text-[9px]'}`}>
+                      {entry.winner}
+                    </span>
+                    <span className={`font-mono-custom flex-1 truncate ${isLatest ? 'text-[10px] text-white' : 'text-[9px] text-muted'}`}>
+                      {entry.action} → <span className={isLatest ? 'text-teal font-bold' : 'text-white'}>{entry.zone}</span>
+                      {entry.was_tiebreak && <span className="ml-2 text-warning text-[9px]">⚡ TIE</span>}
+                    </span>
+                    {isLatest && <span className="shrink-0 font-mono-custom text-[8px] text-teal/60 tracking-[1px]">● NEW</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* RIGHT */}
-        <AgentPanels voteResult={sock.voteResult} />
+        <div className="bg-navyCard border-l border-navyBorder flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto">
+            <AgentPanels voteResult={sock.voteResult} />
+          </div>
+
+          {/* Chart separator */}
+          <div className="shrink-0 border-t-2 border-navyBorder relative">
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal to-transparent opacity-30"></div>
+          </div>
+
+          <div className="shrink-0 min-h-[180px] max-h-[240px]">
+            <VoteHistory history={sock.voteHistory} />
+          </div>
+        </div>
 
       </div>
     </>

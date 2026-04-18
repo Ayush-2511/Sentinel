@@ -22,12 +22,12 @@ export default function VoteHistory({ history }) {
   }, [history]);
 
   return (
-    <div className="h-[220px] shrink-0 flex flex-col border-t border-navyBorder mt-auto bg-[rgba(13,27,42,0.8)] shadow-inner">
-      <div className="font-mono-custom text-[9px] tracking-[3px] text-muted px-4 py-2 border-b border-navyBorder shrink-0 flex items-center justify-between">
+    <div className="h-full flex flex-col bg-[rgba(8,15,23,0.6)]">
+      <div className="font-mono-custom text-[9px] tracking-[3px] text-muted px-3 py-2 border-b border-navyBorder shrink-0 flex items-center justify-between">
         <span>PRIORITY SCORE HISTORY</span>
-        <span className="text-teal tracking-[1px] animate-pulse">LIVE FEED //</span>
+        <span className="text-teal tracking-[1px] animate-pulse text-[8px]">◉ LIVE</span>
       </div>
-      <div className="flex-1 p-2 relative flex flex-col justify-end min-h-0">
+      <div className="flex-1 px-2 pb-2 pt-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ top: 15, right: 15, left: -20, bottom: 5 }}>
             <defs>
