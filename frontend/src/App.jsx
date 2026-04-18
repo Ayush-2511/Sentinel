@@ -34,8 +34,18 @@ export default function App() {
   return (
     <>
       <div className="h-[44px] bg-navyCard border-b border-navyBorder flex items-center justify-between px-4 relative after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1px] after:bg-gradient-to-r after:from-transparent after:via-teal after:to-transparent after:opacity-40">
-        <div className="font-mono-custom text-base tracking-[6px] text-white flex items-center gap-2.5">
-          <span className="text-teal">[</span>SENTINEL<span className="text-teal">]</span>
+        <div className="flex items-center gap-3 cursor-pointer group pl-2">
+          {/* Minimalist target reticle */}
+          <div className="w-[18px] h-[18px] border-[2px] border-teal flex items-center justify-center transform transition-all duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] group-hover:rotate-180 group-hover:scale-[1.2] shadow-[0_0_8px_var(--color-teal)]">
+            <div className="w-1.5 h-1.5 bg-danger animate-pulse shadow-[0_0_6px_var(--color-danger)]"></div>
+          </div>
+          
+          {/* Split colored syllables */}
+          <div className="font-data text-[26px] tracking-[7px] font-bold uppercase transition-all duration-300 mt-[2px] group-hover:tracking-[9px]">
+            <span className="text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.6)] group-hover:text-teal transition-colors duration-500">SEN</span>
+            <span className="text-teal drop-shadow-[0_0_8px_var(--color-teal)]">TI</span>
+            <span className="text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.6)] group-hover:text-teal transition-colors duration-500">NEL</span>
+          </div>
         </div>
         <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-6">
           <div className="flex items-center gap-1.5 font-mono-custom text-[10px] tracking-[2px] text-muted uppercase">
