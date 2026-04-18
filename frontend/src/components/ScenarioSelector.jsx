@@ -10,7 +10,7 @@ export default function ScenarioSelector({ onLoad, current }) {
 
   return (
     <>
-      <div className="font-mono-custom text-[9px] tracking-[3px] text-muted px-3.5 pt-3.5 pb-1.5 uppercase border-b border-navyBorder">SCENARIOS</div>
+      <div className="shrink-0 font-mono-custom text-[9px] tracking-[3px] text-muted px-3.5 pt-3.5 pb-1.5 uppercase border-b border-navyBorder">SCENARIOS</div>
       {scenarios.map(scen => {
         const isActive = current ? current === scen.id : scen.id === "earthquake";
         
@@ -27,7 +27,7 @@ export default function ScenarioSelector({ onLoad, current }) {
           <div 
             key={scen.id} 
             className={clsx(
-              "mx-2.5 my-2 p-2.5 border border-navyBorder rounded-[3px] cursor-pointer transition-all duration-150 relative overflow-hidden group before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[2px] hover:before:bg-teal",
+              "shrink-0 mx-2.5 my-2 p-2.5 border border-navyBorder rounded-[3px] cursor-pointer transition-all duration-150 relative overflow-hidden group before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[2px] hover:before:bg-teal",
               activeHoverClass,
               isActive && activeClass
             )}
