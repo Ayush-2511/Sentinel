@@ -1,0 +1,47 @@
+{
+  "name": "earthquake_01",
+  "display_name": "Earthquake Aftermath",
+  "grid": [
+    [0, 0, 1, 1, 0, 0, 0, 0, 2, 0],
+    [0, 3, 1, 1, 0, 0, 0, 4, 2, 0],
+    [0, 0, 0, 0, 0, 0, 1, 1, 0, 0],
+    [0, 0, 0, 0, 0, 3, 1, 1, 0, 0],
+    [0, 0, 4, 0, 0, 0, 0, 0, 0, 0],
+    [0, 2, 2, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1, 0, 3, 0, 0],
+    [0, 0, 0, 0, 1, 1, 4, 0, 0, 0],
+    [0, 3, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  ],
+  "civilians": [
+    {
+      "id": 1,
+      "pos": [1, 1],
+      "health": 20,
+      "status": "critical"
+    },
+    {
+      "id": 2,
+      "pos": [3, 5],
+      "health": 45,
+      "status": "stable"
+    },
+    {
+      "id": 3,
+      "pos": [6, 7],
+      "health": 15,
+      "status": "critical"
+    },
+    {
+      "id": 4,
+      "pos": [8, 1],
+      "health": 80,
+      "status": "stable"
+    }
+  ],
+  "resources": {
+    "medical_teams": 1,
+    "rescue_units": 2,
+    "supply_caches": 2
+  }
+}
