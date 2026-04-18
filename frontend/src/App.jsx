@@ -8,11 +8,11 @@ import EventControls from "./components/EventControls"
 import ScenarioSelector from "./components/ScenarioSelector"
 
 const MOCK_LOG = [
-  { tick: 1, winner: 'CASPER',    action: 'DISPATCH MEDICAL',  zone: 'C4', was_tiebreak: false },
-  { tick: 2, winner: 'BALTHASAR', action: 'DISPATCH RESCUE',   zone: 'B7', was_tiebreak: false },
-  { tick: 3, winner: 'MELCHIOR',  action: 'DISPATCH SUPPLY',   zone: 'D2', was_tiebreak: true  },
-  { tick: 4, winner: 'CASPER',    action: 'DISPATCH MEDICAL',  zone: 'A1', was_tiebreak: false },
-  { tick: 5, winner: 'BALTHASAR', action: 'EVACUATE',          zone: 'E9', was_tiebreak: false },
+  { tick: 1, winner: 'CASPER',    action: 'DISPATCH MEDICAL', civId: 1, was_tiebreak: false },
+  { tick: 2, winner: 'BALTHASAR', action: 'DISPATCH RESCUE',  civId: 3, was_tiebreak: false },
+  { tick: 3, winner: 'MELCHIOR',  action: 'DISPATCH SUPPLY',  civId: null, was_tiebreak: true  },
+  { tick: 4, winner: 'CASPER',    action: 'DISPATCH MEDICAL', civId: 2, was_tiebreak: false },
+  { tick: 5, winner: 'BALTHASAR', action: 'EVACUATE',         civId: null, was_tiebreak: false },
 ];
 
 export default function App() {
@@ -23,10 +23,10 @@ export default function App() {
   // Build decision log from live vote history, fall back to mock when disconnected
   const decisionLog = sock.voteHistory.length > 0
     ? sock.voteHistory.slice(-5).reverse().map(v => ({
-        tick: v.tick,
-        winner: v.winner,
-        action: v.votes?.find(x => x.agent === v.winner)?.proposed_action?.replace('dispatch_', 'DISPATCH ').toUpperCase() || 'ACTION',
-        zone: v.votes?.find(x => x.agent === v.winner)?.target_zone || '?',
+        tick:         v.tick,
+        winner:       v.winner,
+        action:       v.winning_action?.replace('dispatch_', 'DISPATCH ').toUpperCase() || 'ACTION',
+        civId:        v.winning_target_civilian_id ?? null,
         was_tiebreak: v.was_tiebreak,
       }))
     : MOCK_LOG.slice().reverse();
@@ -118,8 +118,64 @@ export default function App() {
                 <span className="font-mono-custom text-[9px] tracking-[2px] py-0.5 px-2 rounded-sm bg-tealGlow text-teal border border-tealDim animate-blink">● RUNNING</span>
               )}
             </div>
-            <div className="font-mono-custom text-[11px] text-muted tracking-[2px]">TICK <span className="text-teal">{tick}</span></div>
+
+            {/* ── PLAY / PAUSE ── */}
+            <div className="flex items-center gap-3">
+              {sock.gridState ? (
+                sock.gridState.is_running ? (
+                  <button
+                    onClick={sock.pause}
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-sm font-mono-custom text-[9px] tracking-[2px] border border-navyBorder text-muted bg-navyMid hover:border-warning hover:text-warning transition-colors"
+                  >
+                    <span className="text-[11px]">⏸</span> PAUSE
+                  </button>
+                ) : (
+                  <button
+                    onClick={sock.resume}
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-sm font-mono-custom text-[9px] tracking-[2px] border border-teal text-teal bg-tealGlow shadow-[0_0_8px_var(--color-teal)] hover:shadow-[0_0_12px_var(--color-teal)] transition-all"
+                  >
+                    <span className="text-[11px]">▶</span> START SIM
+                  </button>
+                )
+              ) : (
+                <button
+                  disabled
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-sm font-mono-custom text-[9px] tracking-[2px] border border-navyBorder text-muted/40 bg-navyMid cursor-not-allowed opacity-50"
+                >
+                  <span className="text-[11px]">▶</span> LOAD SCENARIO
+                </button>
+              )}
+              <div className="font-mono-custom text-[11px] text-muted tracking-[2px]">TICK <span className="text-teal">{tick}</span></div>
+            </div>
           </div>
+
+          {/* LLM Thinking indicator — visible above the grid while agents deliberate */}
+          {sock.agentThinking && sock.agentThinking.status === "thinking" && (
+            <div className="shrink-0 flex items-center gap-2 px-4 py-1.5 border-b border-navyBorder bg-[rgba(0,212,184,0.04)]">
+              <div className="flex gap-[3px] items-center">
+                <span className="w-1.5 h-1.5 rounded-full bg-teal animate-pulse-dot"></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-teal animate-pulse-dot" style={{animationDelay:"0.2s"}}></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-teal animate-pulse-dot" style={{animationDelay:"0.4s"}}></span>
+              </div>
+              <span className="font-mono-custom text-[9px] tracking-[2px] text-teal">
+                QUERYING{" "}
+                <span className="font-bold">
+                  {sock.agentThinking.agent === "CASPER"    ? <span className="text-danger">CASPER</span>
+                  : sock.agentThinking.agent === "MELCHIOR"  ? <span className="text-warning">MELCHIOR</span>
+                  :                                            <span className="text-teal">BALTHASAR</span>}
+                </span>
+                {" "}— LLM DELIBERATING…
+              </span>
+            </div>
+          )}
+          {sock.agentThinking && sock.agentThinking.status === "done" && (
+            <div className="shrink-0 flex items-center gap-2 px-4 py-1.5 border-b border-navyBorder bg-[rgba(0,212,184,0.04)]">
+              <span className="w-1.5 h-1.5 rounded-full bg-success"></span>
+              <span className="font-mono-custom text-[9px] tracking-[2px] text-success">
+                {sock.agentThinking.agent} RESPONDED — AWAITING NEXT AGENT
+              </span>
+            </div>
+          )}
 
           <Grid gridState={sock.gridState} />
 
@@ -134,14 +190,11 @@ export default function App() {
                 const agentColor = entry.winner === 'CASPER' ? 'text-danger' : entry.winner === 'MELCHIOR' ? 'text-warning' : 'text-teal';
                 const isLatest = i === 0;
                 return (
-                  <div
-                    key={i}
-                    className={`flex items-center gap-2 px-4 border-b transition-colors hover:bg-navyMid
+                  <div key={i} className={`flex items-center gap-2 px-4 border-b transition-colors hover:bg-navyMid
                       ${isLatest
                         ? 'py-[5px] bg-[#0A1E2E] border-l-2 border-l-teal border-navyBorder'
                         : 'py-[3px] border-l-2 border-l-transparent border-navyBorder/40 opacity-70'
-                      }`}
-                  >
+                      }`}>
                     <span className={`font-mono-custom shrink-0 min-w-[52px] ${isLatest ? 'text-[10px] text-teal' : 'text-[9px] text-muted'}`}>
                       TICK {entry.tick}
                     </span>
@@ -149,7 +202,7 @@ export default function App() {
                       {entry.winner}
                     </span>
                     <span className={`font-mono-custom flex-1 truncate ${isLatest ? 'text-[10px] text-white' : 'text-[9px] text-muted'}`}>
-                      {entry.action} → <span className={isLatest ? 'text-teal font-bold' : 'text-white'}>{entry.zone}</span>
+                      {entry.action}{entry.civId ? <span className={isLatest ? ' text-teal font-bold' : ' text-white'}> → CIV #{entry.civId}</span> : ''}
                       {entry.was_tiebreak && <span className="ml-2 text-warning text-[9px]">⚡ TIE</span>}
                     </span>
                     {isLatest && <span className="shrink-0 font-mono-custom text-[8px] text-teal/60 tracking-[1px]">● NEW</span>}
@@ -163,7 +216,12 @@ export default function App() {
         {/* RIGHT */}
         <div className="bg-navyCard border-l border-navyBorder flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto">
-            <AgentPanels voteResult={sock.voteResult} />
+          <AgentPanels
+            voteResult={sock.voteResult}
+            latestVotes={sock.latestVotes}
+            agentThinking={sock.agentThinking}
+            agentErrors={sock.agentErrors}
+          />
           </div>
 
           {/* Chart separator */}
