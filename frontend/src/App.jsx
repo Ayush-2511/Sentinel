@@ -7,17 +7,45 @@ import SurvivalTracker from "./components/SurvivalTracker"
 import EventControls from "./components/EventControls"
 import ScenarioSelector from "./components/ScenarioSelector"
 
+const MOCK_LOG = [
+  { tick: 1, winner: 'CASPER',    action: 'DISPATCH MEDICAL',  zone: 'C4', was_tiebreak: false },
+  { tick: 2, winner: 'BALTHASAR', action: 'DISPATCH RESCUE',   zone: 'B7', was_tiebreak: false },
+  { tick: 3, winner: 'MELCHIOR',  action: 'DISPATCH SUPPLY',   zone: 'D2', was_tiebreak: true  },
+  { tick: 4, winner: 'CASPER',    action: 'DISPATCH MEDICAL',  zone: 'A1', was_tiebreak: false },
+  { tick: 5, winner: 'BALTHASAR', action: 'EVACUATE',          zone: 'E9', was_tiebreak: false },
+];
+
 export default function App() {
   const sock = useSocket()
 
-  // Fake tick data if no backend connection
   const tick = sock.gridState?.tick || 0;
+
+  // Build decision log from live vote history, fall back to mock when disconnected
+  const decisionLog = sock.voteHistory.length > 0
+    ? sock.voteHistory.slice(-5).reverse().map(v => ({
+        tick: v.tick,
+        winner: v.winner,
+        action: v.votes?.find(x => x.agent === v.winner)?.proposed_action?.replace('dispatch_', 'DISPATCH ').toUpperCase() || 'ACTION',
+        zone: v.votes?.find(x => x.agent === v.winner)?.target_zone || '?',
+        was_tiebreak: v.was_tiebreak,
+      }))
+    : MOCK_LOG.slice().reverse();
 
   return (
     <>
       <div className="h-[44px] bg-navyCard border-b border-navyBorder flex items-center justify-between px-4 relative after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1px] after:bg-gradient-to-r after:from-transparent after:via-teal after:to-transparent after:opacity-40">
-        <div className="font-mono-custom text-base tracking-[6px] text-white flex items-center gap-2.5">
-          <span className="text-teal">[</span>SENTINEL<span className="text-teal">]</span>
+        <div className="flex items-center gap-3 cursor-pointer group pl-2">
+          {/* Minimalist target reticle */}
+          <div className="w-[18px] h-[18px] border-[2px] border-teal flex items-center justify-center transform transition-all duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] group-hover:rotate-180 group-hover:scale-[1.2] shadow-[0_0_8px_var(--color-teal)]">
+            <div className="w-1.5 h-1.5 bg-danger animate-pulse shadow-[0_0_6px_var(--color-danger)]"></div>
+          </div>
+          
+          {/* Split colored syllables */}
+          <div className="font-data text-[26px] tracking-[7px] font-bold uppercase transition-all duration-300 mt-[2px] group-hover:tracking-[9px]">
+            <span className="text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.6)] group-hover:text-teal transition-colors duration-500">SEN</span>
+            <span className="text-teal drop-shadow-[0_0_8px_var(--color-teal)]">TI</span>
+            <span className="text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.6)] group-hover:text-teal transition-colors duration-500">NEL</span>
+          </div>
         </div>
         <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-6">
           <div className="flex items-center gap-1.5 font-mono-custom text-[10px] tracking-[2px] text-muted uppercase">
@@ -43,8 +71,8 @@ export default function App() {
           <ScenarioSelector onLoad={sock.loadScenario} current={sock.scenario} />
 
           <>
-            <div className="font-mono-custom text-[9px] tracking-[3px] text-muted px-3.5 pt-3.5 pb-1.5 uppercase border-b border-navyBorder mt-2">RESOURCES</div>
-            <div className="flex items-center justify-between py-2 px-3.5 border-b border-navyBorder">
+            <div className="shrink-0 font-mono-custom text-[9px] tracking-[3px] text-muted px-3.5 pt-3.5 pb-1.5 uppercase border-b border-navyBorder mt-2">RESOURCES</div>
+            <div className="shrink-0 flex items-center justify-between py-2 px-3.5 border-b border-navyBorder">
               <div className="font-mono-custom text-[9px] text-muted tracking-[1px] flex items-center gap-1.5">
                 <span className="text-[11px]">+</span> MEDICAL TEAMS
               </div>
@@ -52,7 +80,7 @@ export default function App() {
                 {sock.gridState?.resources?.medical_teams ?? 0}
               </div>
             </div>
-            <div className="flex items-center justify-between py-2 px-3.5 border-b border-navyBorder">
+            <div className="shrink-0 flex items-center justify-between py-2 px-3.5 border-b border-navyBorder">
               <div className="font-mono-custom text-[9px] text-muted tracking-[1px] flex items-center gap-1.5">
                 <span className="text-[11px]">⬡</span> RESCUE UNITS
               </div>
@@ -60,7 +88,7 @@ export default function App() {
                 {sock.gridState?.resources?.rescue_units ?? 0}
               </div>
             </div>
-            <div className="flex items-center justify-between py-2 px-3.5 border-b border-navyBorder">
+            <div className="shrink-0 flex items-center justify-between py-2 px-3.5 border-b border-navyBorder">
               <div className="font-mono-custom text-[9px] text-muted tracking-[1px] flex items-center gap-1.5">
                 <span className="text-[11px]">■</span> SUPPLY CACHES
               </div>
@@ -95,11 +123,58 @@ export default function App() {
 
           <Grid gridState={sock.gridState} />
 
-          <VoteHistory history={sock.voteHistory} />
+          {/* DECISION LOG */}
+          <div className="shrink-0 border-t border-navyBorder bg-navyCard" style={{height:'112px'}}>
+            <div className="flex items-center justify-between px-4 py-1.5 border-b border-navyBorder">
+              <span className="font-mono-custom text-[9px] tracking-[3px] text-muted uppercase">Decision Log</span>
+              <span className="font-mono-custom text-[8px] tracking-[2px] text-teal opacity-60">LAST 5 ACTIONS</span>
+            </div>
+            <div className="overflow-y-auto" style={{height:'80px'}}>
+              {decisionLog.map((entry, i) => {
+                const agentColor = entry.winner === 'CASPER' ? 'text-danger' : entry.winner === 'MELCHIOR' ? 'text-warning' : 'text-teal';
+                const isLatest = i === 0;
+                return (
+                  <div
+                    key={i}
+                    className={`flex items-center gap-2 px-4 border-b transition-colors hover:bg-navyMid
+                      ${isLatest
+                        ? 'py-[5px] bg-[#0A1E2E] border-l-2 border-l-teal border-navyBorder'
+                        : 'py-[3px] border-l-2 border-l-transparent border-navyBorder/40 opacity-70'
+                      }`}
+                  >
+                    <span className={`font-mono-custom shrink-0 min-w-[52px] ${isLatest ? 'text-[10px] text-teal' : 'text-[9px] text-muted'}`}>
+                      TICK {entry.tick}
+                    </span>
+                    <span className={`font-mono-custom font-bold shrink-0 min-w-[76px] ${agentColor} ${isLatest ? 'text-[10px]' : 'text-[9px]'}`}>
+                      {entry.winner}
+                    </span>
+                    <span className={`font-mono-custom flex-1 truncate ${isLatest ? 'text-[10px] text-white' : 'text-[9px] text-muted'}`}>
+                      {entry.action} → <span className={isLatest ? 'text-teal font-bold' : 'text-white'}>{entry.zone}</span>
+                      {entry.was_tiebreak && <span className="ml-2 text-warning text-[9px]">⚡ TIE</span>}
+                    </span>
+                    {isLatest && <span className="shrink-0 font-mono-custom text-[8px] text-teal/60 tracking-[1px]">● NEW</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* RIGHT */}
-        <AgentPanels voteResult={sock.voteResult} />
+        <div className="bg-navyCard border-l border-navyBorder flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto">
+            <AgentPanels voteResult={sock.voteResult} />
+          </div>
+
+          {/* Chart separator */}
+          <div className="shrink-0 border-t-2 border-navyBorder relative">
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal to-transparent opacity-30"></div>
+          </div>
+
+          <div className="shrink-0 min-h-[180px] max-h-[240px]">
+            <VoteHistory history={sock.voteHistory} />
+          </div>
+        </div>
 
       </div>
     </>

@@ -1,44 +1,8 @@
 {
-  "hash": "371ec8ab",
-  "configHash": "6e61bcb2",
-  "lockfileHash": "d444dedc",
-  "browserHash": "cd0be963",
-  "optimized": {
-    "clsx": {
-      "src": "../../node_modules/clsx/dist/clsx.mjs",
-      "file": "clsx.js",
-      "fileHash": "d698c28d",
-      "needsInterop": false
-    },
-    "react-dom/client": {
-      "src": "../../node_modules/react-dom/client.js",
-      "file": "react-dom_client.js",
-      "fileHash": "42654a5a",
-      "needsInterop": true
-    },
-    "react": {
-      "src": "../../node_modules/react/index.js",
-      "file": "react.js",
-      "fileHash": "c8ad841a",
-      "needsInterop": true
-    },
-    "react/jsx-dev-runtime": {
-      "src": "../../node_modules/react/jsx-dev-runtime.js",
-      "file": "react_jsx-dev-runtime.js",
-      "fileHash": "aca3df68",
-      "needsInterop": true
-    },
-    "socket.io-client": {
-      "src": "../../node_modules/socket.io-client/build/esm/index.js",
-      "file": "socket__io-client.js",
-      "fileHash": "fce3599b",
-      "needsInterop": false
-    }
-  },
-  "chunks": {
-    "chunk-BoAXSpZd": {
-      "file": "chunk-BoAXSpZd.js",
-      "isDynamicEntry": false
-    }
-  }
+  "hash": "ec4cc9ea",
+  "configHash": "0f25a14a",
+  "lockfileHash": "d0923580",
+  "browserHash": "38ac7254",
+  "optimized": {},
+  "chunks": {}
 }

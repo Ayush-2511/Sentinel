@@ -78,33 +78,49 @@ export default function Grid({ gridState }) {
 
   return (
     <>
-      <div className="flex-1 flex items-center justify-center p-5 relative tactical-bg overflow-hidden shadow-inner">
-        <div className="absolute w-4 h-4 border-tealDim opacity-80 top-2.5 left-2.5 border-t-2 border-l-2 shadow-[0_0_4px_var(--color-tealDim)]"></div>
-        <div className="absolute w-4 h-4 border-tealDim opacity-80 top-2.5 right-2.5 border-t-2 border-r-2 shadow-[0_0_4px_var(--color-tealDim)]"></div>
-        <div className="absolute w-4 h-4 border-tealDim opacity-80 bottom-2.5 left-2.5 border-b-2 border-l-2 shadow-[0_0_4px_var(--color-tealDim)]"></div>
-        <div className="absolute w-4 h-4 border-tealDim opacity-80 bottom-2.5 right-2.5 border-b-2 border-r-2 shadow-[0_0_4px_var(--color-tealDim)]"></div>
-        
-        {/* Subtle grid background tracking lines overlay to make it feel tactical */}
-        <div className="absolute inset-x-0 inset-y-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'linear-gradient(var(--color-teal) 1px, transparent 1px), linear-gradient(90deg, var(--color-teal) 1px, transparent 1px)', backgroundSize: '10% 10%' }}></div>
+      {/* Grid area with padding for breathing room */}
+      <div className="flex-1 flex items-center justify-center py-6 px-4 relative tactical-bg overflow-hidden shadow-inner">
 
-        <div className="grid grid-cols-[repeat(10,1fr)] gap-[2px] w-[min(calc(100vh-200px),calc(100vw-560px))] aspect-square max-w-[520px] max-h-[520px] z-10">
-          {grid.map((rowArr, r) => 
-            rowArr.map((val, c) => {
-              const {bg, animation, label} = getCellRendering(r, c, val);
-              return (
-                <div 
-                  key={`${r}-${c}`}
-                  className={clsx(
-                    "aspect-square rounded-sm flex items-center justify-center font-mono-custom text-[9px] font-bold relative cursor-pointer transition-all duration-300 ease-in-out hover:scale-[1.18] hover:z-20 hover:shadow-[0_0_12px_currentColor] border animate-slide-in",
-                    bg, animation
-                  )}
-                  style={{ animationDelay: `${(r * 10 + c) * 3}ms` }}
-                >
-                  {label}
-                </div>
-              );
-            })
-          )}
+        {/* Grid wrapper — relative so inner corners are positioned against the grid itself */}
+        <div className="relative z-10">
+          {/* Inner grid corners — dimmed green, barely-there glow */}
+          <div className="absolute -top-[3px] -left-[3px] w-3 h-3 pointer-events-none"
+            style={{ borderTop: '1px solid rgba(46,180,90,0.35)', borderLeft: '1px solid rgba(46,180,90,0.35)', boxShadow: '0 0 4px rgba(46,180,90,0.12)' }} />
+          <div className="absolute -top-[3px] -right-[3px] w-3 h-3 pointer-events-none"
+            style={{ borderTop: '1px solid rgba(46,180,90,0.35)', borderRight: '1px solid rgba(46,180,90,0.35)', boxShadow: '0 0 4px rgba(46,180,90,0.12)' }} />
+          <div className="absolute -bottom-[3px] -left-[3px] w-3 h-3 pointer-events-none"
+            style={{ borderBottom: '1px solid rgba(46,180,90,0.35)', borderLeft: '1px solid rgba(46,180,90,0.35)', boxShadow: '0 0 4px rgba(46,180,90,0.12)' }} />
+          <div className="absolute -bottom-[3px] -right-[3px] w-3 h-3 pointer-events-none"
+            style={{ borderBottom: '1px solid rgba(46,180,90,0.35)', borderRight: '1px solid rgba(46,180,90,0.35)', boxShadow: '0 0 4px rgba(46,180,90,0.12)' }} />
+
+          {/* Grid structure: gap background = separator line color */}
+          <div
+            className="grid grid-cols-[repeat(10,1fr)] w-[min(calc(100vh-260px),calc(100vw-560px))] aspect-square max-w-[540px] max-h-[540px]"
+            style={{
+              gap: '1px',
+              background: '#1E3048',   /* separator — one step brighter, clearly readable */
+              border: '1px solid #1E3048',
+              padding: '1px',
+            }}
+          >
+            {grid.map((rowArr, r) =>
+              rowArr.map((val, c) => {
+                const {bg, animation, label} = getCellRendering(r, c, val);
+                return (
+                  <div
+                    key={`${r}-${c}`}
+                    className={clsx(
+                      "aspect-square flex items-center justify-center font-mono-custom text-[9px] font-bold relative cursor-pointer transition-all duration-300 ease-in-out hover:scale-[1.18] hover:z-20 hover:shadow-[0_0_12px_currentColor] animate-slide-in",
+                      bg, animation
+                    )}
+                    style={{ animationDelay: `${(r * 10 + c) * 3}ms` }}
+                  >
+                    {label}
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       </div>
 
