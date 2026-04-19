@@ -46,6 +46,10 @@ socketio = SocketIO(
     logger=False, engineio_logger=False,
 )
 
+@app.route("/")
+def heartbeat():
+    return {"status": "online", "system": "SENTINEL", "version": "3.5.0"}, 200
+
 # ── Engine & Agents ────────────────────────────────────────────────────────────
 city_engine = CityEngine()
 event_engine = EventEngine()

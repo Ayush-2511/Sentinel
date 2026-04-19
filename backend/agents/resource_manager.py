@@ -5,6 +5,8 @@ Handles unit budgeting, hard-caps, and dispatch logging.
 
 class ResourceManager:
     def __init__(self):
+        import os
+        os.makedirs("logs", exist_ok=True)
         self.dispatch_history = []  # List of {tick, agent, action, target, units, reason}
         self._load_from_file()
 
