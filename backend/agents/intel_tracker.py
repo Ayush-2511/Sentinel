@@ -13,25 +13,26 @@ class IntelTracker:
             "BALTHASAR": []
         }
 
-    def record(self, agent: str, predicted_impact, actual_delta: float, tick: int):
+    def record(self, agent: str, priority_score: float, risk_index: float, tick: int):
         """
         Record one tick of prediction vs reality for an agent.
-        Silent no-op for unknown agent names — never raises.
+        Compares the agent's subjective priority_score against the engine's objective risk_index.
         """
         if agent not in self._history:
             return
 
         try:
-            predicted_impact = float(predicted_impact)
+            priority_score = float(priority_score)
+            risk_index = float(risk_index)
         except (TypeError, ValueError):
-            predicted_impact = 0.0
+            priority_score = 0.0
+            risk_index = 0.0
 
         entry = {
             "tick":              tick,
-            "predicted_impact":  predicted_impact,
-            "actual_delta":      actual_delta,
-            "error":             abs(predicted_impact - actual_delta),
-            "direction_correct": (predicted_impact >= 0) == (actual_delta >= 0)
+            "priority_score":    priority_score,
+            "risk_index":        risk_index,
+            "error":             abs(priority_score - risk_index)
         }
 
         self._history[agent].append(entry)

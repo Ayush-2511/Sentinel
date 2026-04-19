@@ -302,6 +302,19 @@ def _mock_ai_vote(state_snapshot: dict):
                 _emit_state()
                 time.sleep(0.5)
 
+        # Record agent accuracy for mock mode
+        for v in result.get("votes", []):
+            target_id = v.get("target_sector")
+            p_score = v.get("priority_score", 0.0)
+            risk = 0.0
+            if target_id:
+                sector = next((s for s in state_snapshot.get("sectors", []) if s["id"] == target_id), None)
+                if sector:
+                    risk = sector.get("risk_index", 0.0)
+            intel_tracker.record(v["agent"], p_score, risk, state_snapshot.get("tick", 0))
+
+        result["intel_accuracy"] = intel_tracker.get_all_accuracy()
+
         socketio.emit("vote_result", result)
         
         if result["resolutions"]:
@@ -400,6 +413,21 @@ def _ai_vote(state_snapshot: dict):
                 time.sleep(0.5)
 
         _emit_state()
+
+        # Record agent accuracy based on their vote vs objective risk
+        for v in result.get("votes", []):
+            target_id = v.get("target_sector")
+            p_score = v.get("priority_score", 0.0)
+            risk = 0.0
+            if target_id:
+                sector = next((s for s in state_snapshot.get("sectors", []) if s["id"] == target_id), None)
+                if sector:
+                    risk = sector.get("risk_index", 0.0)
+            intel_tracker.record(v["agent"], p_score, risk, state_snapshot.get("tick", 0))
+
+        # Re-fetch accuracy for the payload
+        result["intel_accuracy"] = intel_tracker.get_all_accuracy()
+
         socketio.emit("vote_result", result)
 
         if result["resolutions"]:

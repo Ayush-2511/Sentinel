@@ -14,7 +14,7 @@ class VotingEngine:
         Also handles: all-hold override, zone stacking penalty, MELCHIOR depletion veto.
         """
         if not votes:
-            return self._empty_result()
+            return self._empty_result(state.get("tick", 0))
 
         # ── Pre-processing: Strip hold votes for stacking analysis ──
         action_votes = [v for v in votes if v.get("proposed_action") != "hold"]
@@ -39,7 +39,7 @@ class VotingEngine:
                     votes = [v if v["agent"] != best_hold["agent"] else override_vote for v in votes]
                     action_votes = [override_vote]
             if not action_votes:
-                return self._empty_result()
+                return self._empty_result(state.get("tick", 0))
 
         # ── Rule 2: Zone Stacking Penalty ──
         # If 2+ agents all target the SAME sector, reduce their priority scores by 20%
@@ -123,7 +123,7 @@ class VotingEngine:
 
         # If it's a hold action, we might have no winner
         if top["proposed_action"] == "hold":
-            return self._empty_result()
+            return self._empty_result(state.get("tick", 0))
 
         # Resolution Logic
         res_method = "highest_score"
@@ -169,9 +169,9 @@ class VotingEngine:
         "LOW":         0.15,  # Unverified Rumor / Probe
     }
 
-    def _empty_result(self):
+    def _empty_result(self, tick=0):
         return {
-            "tick": 0,
+            "tick": tick,
             "votes": [],
             "resolutions": [],
             "method": "no_votes",
