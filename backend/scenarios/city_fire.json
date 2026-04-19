@@ -1,0 +1,57 @@
+{
+  "name": "city_fire",
+  "display_name": "Urban Fire",
+  "city_name": "Lucknow Central District",
+  "description": "Fire erupted in 2 commercial blocks. Spreading fast toward residential areas. 6 city blocks in play.",
+  "sectors": [
+    {
+      "id": "A1", "name": "Aminabad Market", "type": "commercial", "row": 0, "col": 0,
+      "polygon": [[26.8550,80.9250],[26.8550,80.9400],[26.8480,80.9400],[26.8480,80.9250]],
+      "civilians": {"total": 30, "critical": 8, "stable": 20, "rescued": 2},
+      "infrastructure": "damaged", "hazards": ["fire"],
+      "fire_intensity": 0.6,
+      "resources_deployed": {"medical_teams": 0, "rescue_units": 0, "supply_caches": 0}
+    },
+    {
+      "id": "B1", "name": "Chowk Bazaar", "type": "commercial", "row": 0, "col": 1,
+      "polygon": [[26.8550,80.9400],[26.8550,80.9550],[26.8480,80.9550],[26.8480,80.9400]],
+      "civilians": {"total": 22, "critical": 12, "stable": 8, "rescued": 2},
+      "infrastructure": "destroyed", "hazards": ["fire", "structural_collapse"],
+      "fire_intensity": 0.85,
+      "resources_deployed": {"medical_teams": 0, "rescue_units": 0, "supply_caches": 0}
+    },
+    {
+      "id": "C1", "name": "Naka Hindola", "type": "residential", "row": 0, "col": 2,
+      "polygon": [[26.8550,80.9550],[26.8550,80.9700],[26.8480,80.9700],[26.8480,80.9550]],
+      "civilians": {"total": 45, "critical": 3, "stable": 40, "rescued": 2},
+      "infrastructure": "intact", "hazards": [],
+      "fire_intensity": 0.0,
+      "resources_deployed": {"medical_teams": 0, "rescue_units": 0, "supply_caches": 0}
+    },
+    {
+      "id": "A2", "name": "Yahiyaganj", "type": "residential", "row": 1, "col": 0,
+      "polygon": [[26.8480,80.9250],[26.8480,80.9400],[26.8410,80.9400],[26.8410,80.9250]],
+      "civilians": {"total": 55, "critical": 0, "stable": 52, "rescued": 3},
+      "infrastructure": "intact", "hazards": [],
+      "fire_intensity": 0.0,
+      "resources_deployed": {"medical_teams": 0, "rescue_units": 0, "supply_caches": 0}
+    },
+    {
+      "id": "B2", "name": "Hazratganj", "type": "commercial", "row": 1, "col": 1,
+      "polygon": [[26.8480,80.9400],[26.8480,80.9550],[26.8410,80.9550],[26.8410,80.9400]],
+      "civilians": {"total": 35, "critical": 5, "stable": 28, "rescued": 2},
+      "infrastructure": "damaged", "hazards": ["fire"],
+      "fire_intensity": 0.35,
+      "resources_deployed": {"medical_teams": 0, "rescue_units": 0, "supply_caches": 0}
+    },
+    {
+      "id": "C2", "name": "Lalbagh", "type": "residential", "row": 1, "col": 2,
+      "polygon": [[26.8480,80.9550],[26.8480,80.9700],[26.8410,80.9700],[26.8410,80.9550]],
+      "civilians": {"total": 60, "critical": 0, "stable": 58, "rescued": 2},
+      "infrastructure": "intact", "hazards": [],
+      "fire_intensity": 0.0,
+      "resources_deployed": {"medical_teams": 0, "rescue_units": 0, "supply_caches": 0}
+    }
+  ],
+  "global_resources": { "medical_teams": 2, "rescue_units": 2, "supply_caches": 3 }
+}

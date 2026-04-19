@@ -14,12 +14,12 @@ export default function AgentPanels({ voteResult, latestVotes = {}, agentThinkin
     const isThinking  = agentThinking?.agent === agentName && agentThinking?.status === "thinking";
     const errorInfo   = agentErrors[agentName] ?? null;  // { label, message, code }
 
-    // Action display: backend sends target_civilian_id (not target_zone)
+    // Action display: backend now sends target_sector (not target_civilian_id)
     let actionText = "AWAITING DATA";
     if (vote) {
       const action = vote.proposed_action?.replace("dispatch_", "DISPATCH ").toUpperCase() || "HOLD";
-      const civId  = vote.target_civilian_id;
-      actionText   = civId ? `${action} → CIV #${civId}` : action;
+      const sector = vote.target_sector;
+      actionText   = sector ? `${action} → ${sector}` : action;
     }
 
     return {

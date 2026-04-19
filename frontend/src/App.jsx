@@ -1,35 +1,41 @@
-import React from "react"
+import React, { useState, useEffect } from "react"
 import { useSocket } from "./hooks/useSocket"
-import Grid from "./components/Grid"
+import CityMap from "./components/CityMap"
 import AgentPanels from "./components/AgentPanels"
 import VoteHistory from "./components/VoteHistory"
 import SurvivalTracker from "./components/SurvivalTracker"
 import EventControls from "./components/EventControls"
 import ScenarioSelector from "./components/ScenarioSelector"
 
-const MOCK_LOG = [
-  { tick: 1, winner: 'CASPER',    action: 'DISPATCH MEDICAL', civId: 1, was_tiebreak: false },
-  { tick: 2, winner: 'BALTHASAR', action: 'DISPATCH RESCUE',  civId: 3, was_tiebreak: false },
-  { tick: 3, winner: 'MELCHIOR',  action: 'DISPATCH SUPPLY',  civId: null, was_tiebreak: true  },
-  { tick: 4, winner: 'CASPER',    action: 'DISPATCH MEDICAL', civId: 2, was_tiebreak: false },
-  { tick: 5, winner: 'BALTHASAR', action: 'EVACUATE',         civId: null, was_tiebreak: false },
-];
-
 export default function App() {
   const sock = useSocket()
+  const [lastWinnerSector, setLastWinnerSector] = useState(null)
 
-  const tick = sock.gridState?.tick || 0;
+  const tick = sock.gridState?.tick || 0
+  const res = sock.gridState?.global_resources || sock.gridState?.resources || {}
+  const totalCiv = sock.gridState?.total_civilians || {}
 
-  // Build decision log from live vote history, fall back to mock when disconnected
+  // Track last winner sector from vote results
+  useEffect(() => {
+    if (sock.voteResult?.winning_target) {
+      setLastWinnerSector(sock.voteResult.winning_target)
+    }
+  }, [sock.voteResult])
+
+  // Build decision log from live vote history
   const decisionLog = sock.voteHistory.length > 0
-    ? sock.voteHistory.slice(-5).reverse().map(v => ({
-        tick:         v.tick,
-        winner:       v.winner,
-        action:       v.winning_action?.replace('dispatch_', 'DISPATCH ').toUpperCase() || 'ACTION',
-        civId:        v.winning_target_civilian_id ?? null,
-        was_tiebreak: v.was_tiebreak,
-      }))
-    : MOCK_LOG.slice().reverse();
+    ? sock.voteHistory.slice(-5).reverse().map(v => {
+        const sectorName = sock.gridState?.sectors?.find(s => s.id === v.winning_target)?.name || v.winning_target
+        return {
+          tick: v.tick,
+          winner: v.winner,
+          action: v.winning_action?.replace('dispatch_', 'DISPATCH ').toUpperCase() || 'ACTION',
+          target: v.winning_target,
+          targetName: sectorName,
+          was_tiebreak: v.was_tiebreak,
+        }
+      })
+    : []
 
   return (
     <>
@@ -76,29 +82,29 @@ export default function App() {
               <div className="font-mono-custom text-[9px] text-muted tracking-[1px] flex items-center gap-1.5">
                 <span className="text-[11px]">+</span> MEDICAL TEAMS
               </div>
-              <div className={`font-data text-[18px] font-bold ${!sock.gridState || sock.gridState.resources?.medical_teams === 0 ? "text-danger" : sock.gridState.resources?.medical_teams < 2 ? "text-warning" : "text-teal"}`}>
-                {sock.gridState?.resources?.medical_teams ?? 0}
+              <div className={`font-data text-[18px] font-bold ${!res.medical_teams || res.medical_teams === 0 ? "text-danger" : res.medical_teams < 2 ? "text-warning" : "text-teal"}`}>
+                {res.medical_teams ?? 0}
               </div>
             </div>
             <div className="shrink-0 flex items-center justify-between py-2 px-3.5 border-b border-navyBorder">
               <div className="font-mono-custom text-[9px] text-muted tracking-[1px] flex items-center gap-1.5">
                 <span className="text-[11px]">⬡</span> RESCUE UNITS
               </div>
-              <div className={`font-data text-[18px] font-bold ${!sock.gridState || sock.gridState.resources?.rescue_units === 0 ? "text-danger" : sock.gridState.resources?.rescue_units < 2 ? "text-warning" : "text-teal"}`}>
-                {sock.gridState?.resources?.rescue_units ?? 0}
+              <div className={`font-data text-[18px] font-bold ${!res.rescue_units || res.rescue_units === 0 ? "text-danger" : res.rescue_units < 2 ? "text-warning" : "text-teal"}`}>
+                {res.rescue_units ?? 0}
               </div>
             </div>
             <div className="shrink-0 flex items-center justify-between py-2 px-3.5 border-b border-navyBorder">
               <div className="font-mono-custom text-[9px] text-muted tracking-[1px] flex items-center gap-1.5">
                 <span className="text-[11px]">■</span> SUPPLY CACHES
               </div>
-              <div className={`font-data text-[18px] font-bold ${!sock.gridState || sock.gridState.resources?.supply_caches === 0 ? "text-danger" : sock.gridState.resources?.supply_caches < 2 ? "text-warning" : "text-teal"}`}>
-                {sock.gridState?.resources?.supply_caches ?? 0}
+              <div className={`font-data text-[18px] font-bold ${!res.supply_caches || res.supply_caches === 0 ? "text-danger" : res.supply_caches < 2 ? "text-warning" : "text-teal"}`}>
+                {res.supply_caches ?? 0}
               </div>
             </div>
           </>
 
-          <SurvivalTracker civilians={sock.gridState?.civilians} />
+          <SurvivalTracker totalCivilians={totalCiv} />
 
           <EventControls
             onTrigger={sock.triggerEvent}
@@ -113,13 +119,13 @@ export default function App() {
         <div className="flex flex-col bg-navy overflow-hidden">
           <div className="flex items-center justify-between py-2.5 px-4 border-b border-navyBorder bg-navyCard">
             <div className="font-data text-base font-bold tracking-[3px] text-white flex items-center gap-2.5">
-              DISASTER GRID
+              CITY MAP
               {sock.gridState?.is_running && (
                 <span className="font-mono-custom text-[9px] tracking-[2px] py-0.5 px-2 rounded-sm bg-tealGlow text-teal border border-tealDim animate-blink">● RUNNING</span>
               )}
             </div>
 
-            {/* ── PLAY / PAUSE ── */}
+            {/* PLAY / PAUSE */}
             <div className="flex items-center gap-3">
               {sock.gridState ? (
                 sock.gridState.is_running ? (
@@ -149,7 +155,7 @@ export default function App() {
             </div>
           </div>
 
-          {/* LLM Thinking indicator — visible above the grid while agents deliberate */}
+          {/* LLM Thinking indicator */}
           {sock.agentThinking && sock.agentThinking.status === "thinking" && (
             <div className="shrink-0 flex items-center gap-2 px-4 py-1.5 border-b border-navyBorder bg-[rgba(0,212,184,0.04)]">
               <div className="flex gap-[3px] items-center">
@@ -177,7 +183,7 @@ export default function App() {
             </div>
           )}
 
-          <Grid gridState={sock.gridState} />
+          <CityMap gridState={sock.gridState} lastWinnerSector={lastWinnerSector} />
 
           {/* DECISION LOG */}
           <div className="shrink-0 border-t border-navyBorder bg-navyCard" style={{height:'112px'}}>
@@ -186,6 +192,11 @@ export default function App() {
               <span className="font-mono-custom text-[8px] tracking-[2px] text-teal opacity-60">LAST 5 ACTIONS</span>
             </div>
             <div className="overflow-y-auto" style={{height:'80px'}}>
+              {decisionLog.length === 0 && (
+                <div className="flex items-center justify-center h-full text-muted text-[9px] font-mono-custom tracking-[2px] opacity-40">
+                  AWAITING FIRST DECISION…
+                </div>
+              )}
               {decisionLog.map((entry, i) => {
                 const agentColor = entry.winner === 'CASPER' ? 'text-danger' : entry.winner === 'MELCHIOR' ? 'text-warning' : 'text-teal';
                 const isLatest = i === 0;
@@ -202,7 +213,8 @@ export default function App() {
                       {entry.winner}
                     </span>
                     <span className={`font-mono-custom flex-1 truncate ${isLatest ? 'text-[10px] text-white' : 'text-[9px] text-muted'}`}>
-                      {entry.action}{entry.civId ? <span className={isLatest ? ' text-teal font-bold' : ' text-white'}> → CIV #{entry.civId}</span> : ''}
+                      {entry.action}
+                      {entry.target && <span className={isLatest ? ' text-teal font-bold' : ' text-white'}> → {entry.target} ({entry.targetName})</span>}
                       {entry.was_tiebreak && <span className="ml-2 text-warning text-[9px]">⚡ TIE</span>}
                     </span>
                     {isLatest && <span className="shrink-0 font-mono-custom text-[8px] text-teal/60 tracking-[1px]">● NEW</span>}
@@ -224,7 +236,6 @@ export default function App() {
           />
           </div>
 
-          {/* Chart separator */}
           <div className="shrink-0 border-t-2 border-navyBorder relative">
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal to-transparent opacity-30"></div>
           </div>

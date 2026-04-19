@@ -1,47 +1,57 @@
 {
-  "name": "building_collapse_01",
-  "display_name": "High-Rise Collapse",
-  "grid": [
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
-    [0, 0, 1, 0, 1, 1, 2, 0, 4, 0],
-    [0, 0, 1, 1, 1, 0, 2, 0, 0, 0],
-    [0, 0, 1, 0, 1, 1, 2, 0, 0, 0],
-    [0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
-    [0, 0, 0, 2, 2, 0, 0, 0, 0, 0],
-    [0, 4, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  "name": "building_collapse",
+  "display_name": "Building Collapse",
+  "city_name": "Lucknow Metro Area",
+  "description": "Multi-story residential complex collapse. High rescue demand, limited medical.",
+  "sectors": [
+    { "id":"A1","name":"Aminabad","type":"commercial","row":0,"col":0,
+      "polygon":[[26.8580,80.9180],[26.8580,80.9340],[26.8500,80.9340],[26.8500,80.9180]],
+      "civilians":{"total":20,"critical":0,"stable":19,"rescued":1},"infrastructure":"intact","hazards":[],
+      "resources_deployed":{"medical_teams":0,"rescue_units":0,"supply_caches":0} },
+    { "id":"B1","name":"KGMU Hospital","type":"hospital","row":0,"col":1,
+      "polygon":[[26.8580,80.9340],[26.8580,80.9500],[26.8500,80.9500],[26.8500,80.9340]],
+      "civilians":{"total":45,"critical":20,"stable":22,"rescued":3},"infrastructure":"damaged","hazards":["structural_collapse"],
+      "resources_deployed":{"medical_teams":0,"rescue_units":0,"supply_caches":0} },
+    { "id":"C1","name":"Lucknow University","type":"school","row":0,"col":2,
+      "polygon":[[26.8580,80.9500],[26.8580,80.9660],[26.8500,80.9660],[26.8500,80.9500]],
+      "civilians":{"total":60,"critical":25,"stable":30,"rescued":5},"infrastructure":"destroyed","hazards":["structural_collapse","fire"],
+      "resources_deployed":{"medical_teams":0,"rescue_units":0,"supply_caches":0} },
+    { "id":"D1","name":"Aishbagh","type":"industrial","row":0,"col":3,
+      "polygon":[[26.8580,80.9660],[26.8580,80.9820],[26.8500,80.9820],[26.8500,80.9660]],
+      "civilians":{"total":10,"critical":0,"stable":10,"rescued":0},"infrastructure":"intact","hazards":[],
+      "resources_deployed":{"medical_teams":0,"rescue_units":0,"supply_caches":0} },
+    { "id":"A2","name":"Daliganj","type":"residential","row":1,"col":0,
+      "polygon":[[26.8500,80.9180],[26.8500,80.9340],[26.8420,80.9340],[26.8420,80.9180]],
+      "civilians":{"total":35,"critical":15,"stable":18,"rescued":2},"infrastructure":"destroyed","hazards":["structural_collapse"],
+      "resources_deployed":{"medical_teams":0,"rescue_units":0,"supply_caches":0} },
+    { "id":"B2","name":"Hazratganj","type":"commercial","row":1,"col":1,
+      "polygon":[[26.8500,80.9340],[26.8500,80.9500],[26.8420,80.9500],[26.8420,80.9340]],
+      "civilians":{"total":25,"critical":0,"stable":24,"rescued":1},"infrastructure":"intact","hazards":[],
+      "resources_deployed":{"medical_teams":0,"rescue_units":0,"supply_caches":0} },
+    { "id":"C2","name":"Husainabad","type":"residential","row":1,"col":2,
+      "polygon":[[26.8500,80.9500],[26.8500,80.9660],[26.8420,80.9660],[26.8420,80.9500]],
+      "civilians":{"total":40,"critical":12,"stable":26,"rescued":2},"infrastructure":"damaged","hazards":["structural_collapse"],
+      "resources_deployed":{"medical_teams":0,"rescue_units":0,"supply_caches":0} },
+    { "id":"D2","name":"Charbagh","type":"residential","row":1,"col":3,
+      "polygon":[[26.8500,80.9660],[26.8500,80.9820],[26.8420,80.9820],[26.8420,80.9660]],
+      "civilians":{"total":30,"critical":8,"stable":20,"rescued":2},"infrastructure":"damaged","hazards":["structural_collapse"],
+      "resources_deployed":{"medical_teams":0,"rescue_units":0,"supply_caches":0} },
+    { "id":"A3","name":"Cantonment","type":"industrial","row":2,"col":0,
+      "polygon":[[26.8420,80.9180],[26.8420,80.9340],[26.8340,80.9340],[26.8340,80.9180]],
+      "civilians":{"total":12,"critical":0,"stable":11,"rescued":1},"infrastructure":"intact","hazards":[],
+      "resources_deployed":{"medical_teams":0,"rescue_units":0,"supply_caches":0} },
+    { "id":"B3","name":"Gomti Nagar","type":"residential","row":2,"col":1,
+      "polygon":[[26.8420,80.9340],[26.8420,80.9500],[26.8340,80.9500],[26.8340,80.9340]],
+      "civilians":{"total":50,"critical":5,"stable":40,"rescued":5},"infrastructure":"intact","hazards":[],
+      "resources_deployed":{"medical_teams":0,"rescue_units":0,"supply_caches":0} },
+    { "id":"C3","name":"Alambagh","type":"residential","row":2,"col":2,
+      "polygon":[[26.8420,80.9500],[26.8420,80.9660],[26.8340,80.9660],[26.8340,80.9500]],
+      "civilians":{"total":28,"critical":0,"stable":26,"rescued":2},"infrastructure":"intact","hazards":[],
+      "resources_deployed":{"medical_teams":0,"rescue_units":0,"supply_caches":0} },
+    { "id":"D3","name":"Amausi","type":"industrial","row":2,"col":3,
+      "polygon":[[26.8420,80.9660],[26.8420,80.9820],[26.8340,80.9820],[26.8340,80.9660]],
+      "civilians":{"total":15,"critical":0,"stable":14,"rescued":1},"infrastructure":"intact","hazards":[],
+      "resources_deployed":{"medical_teams":0,"rescue_units":0,"supply_caches":0} }
   ],
-  "civilians": [
-    {
-      "id": 1,
-      "pos": [3, 3],
-      "health": 15,
-      "status": "critical"
-    },
-    {
-      "id": 2,
-      "pos": [4, 5],
-      "health": 20,
-      "status": "critical"
-    },
-    {
-      "id": 3,
-      "pos": [5, 3],
-      "health": 5,
-      "status": "critical"
-    },
-    {
-      "id": 4,
-      "pos": [8, 7],
-      "health": 50,
-      "status": "stable"
-    }
-  ],
-  "resources": {
-    "medical_teams": 1,
-    "rescue_units": 3,
-    "supply_caches": 1
-  }
+  "global_resources": { "medical_teams": 2, "rescue_units": 5, "supply_caches": 4 }
 }

@@ -2,16 +2,38 @@ import React from "react";
 import clsx from "clsx";
 
 export default function ScenarioSelector({ onLoad, current }) {
-  // Only the fire scenario for now
   const scenarios = [
     {
-      id: "simple_crisis",
-      name: "ISOLATED BUILDING FIRE",
-      meta: "3 CIV · 1 FIRE SOURCE · 3×3 BUILDING",
-      severity: "HIGH",
+      id: "city_fire",
+      name: "URBAN FIRE",
+      meta: "6 BLOCKS · 3 BURNING · FIRE SPREADING",
+      severity: "CRITICAL",
       severityClass: "text-danger bg-dangerDim border-danger/30",
-      colorTheme: "red",
       icon: "🔥",
+    },
+    {
+      id: "earthquake",
+      name: "EARTHQUAKE",
+      meta: "12 SECTORS · STRUCTURAL COLLAPSE",
+      severity: "HIGH",
+      severityClass: "text-warning bg-warningDim border-warning/30",
+      icon: "🏚️",
+    },
+    {
+      id: "flood",
+      name: "FLOOD",
+      meta: "12 SECTORS · GOMTI RIVER OVERFLOW",
+      severity: "HIGH",
+      severityClass: "text-warning bg-warningDim border-warning/30",
+      icon: "🌊",
+    },
+    {
+      id: "building_collapse",
+      name: "BUILDING COLLAPSE",
+      meta: "12 SECTORS · HIGH RESCUE DEMAND",
+      severity: "MEDIUM",
+      severityClass: "text-teal bg-tealGlow border-teal/30",
+      icon: "🏗️",
     },
   ];
 
@@ -19,17 +41,18 @@ export default function ScenarioSelector({ onLoad, current }) {
     <>
       <div className="shrink-0 font-mono-custom text-[9px] tracking-[3px] text-muted px-3.5 pt-3.5 pb-1.5 uppercase border-b border-navyBorder">SCENARIOS</div>
       {scenarios.map(scen => {
-        const isActive = current === scen.id || (!current && scen.id === "simple_crisis");
+        const isActive = current === scen.id;
+        const colorAccent = scen.severity === "CRITICAL" ? "danger" : scen.severity === "HIGH" ? "warning" : "teal";
 
         return (
           <div
             key={scen.id}
             className={clsx(
-              "shrink-0 mx-2.5 my-2 p-2.5 border rounded-[3px] cursor-pointer transition-all duration-150 relative overflow-hidden group",
+              "shrink-0 mx-2.5 my-1.5 p-2.5 border rounded-[3px] cursor-pointer transition-all duration-150 relative overflow-hidden group",
               "before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[2px]",
               isActive
-                ? "border-danger/50 bg-danger/10 before:bg-danger shadow-[0_0_8px_rgba(255,61,90,0.12)]"
-                : "border-navyBorder hover:border-danger/30 hover:bg-danger/5 hover:before:bg-danger/50 before:bg-transparent"
+                ? `border-${colorAccent}/50 bg-${colorAccent}/10 before:bg-${colorAccent} shadow-[0_0_8px_rgba(255,61,90,0.12)]`
+                : "border-navyBorder hover:border-teal/30 hover:bg-teal/5 hover:before:bg-teal/50 before:bg-transparent"
             )}
             onClick={() => onLoad(scen.id)}
           >
