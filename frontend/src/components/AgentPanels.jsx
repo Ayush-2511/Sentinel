@@ -58,7 +58,7 @@ export default function AgentPanels({ voteResult, latestVotes = {}, agentThinkin
         <div
           key={agent.agentName}
           className={clsx(
-            "border-b border-navyBorder py-3 px-4 transition-all duration-300 relative shrink-0",
+            "border-b border-navyBorder py-3 px-4 transition-all duration-300 relative shrink-0 overflow-hidden",
             agent.isWinner
               ? "before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px]"
               : "hover:bg-[rgba(255,255,255,0.02)]",
@@ -67,6 +67,7 @@ export default function AgentPanels({ voteResult, latestVotes = {}, agentThinkin
             agent.isWinner && agent.colorTheme === "teal"  && "bg-[rgba(0,212,184,0.06)]   before:bg-teal",
             agent.isThinking && "bg-[rgba(255,255,255,0.03)]"
           )}
+          style={{ height: "170px" }}
         >
           {/* Header row */}
           <div className="flex items-center justify-between mb-2">
@@ -125,12 +126,14 @@ export default function AgentPanels({ voteResult, latestVotes = {}, agentThinkin
             <span className="text-white font-bold">{agent.action}</span>
           </div>
 
-          {/* Reasoning / Error */}
+          {/* Reasoning / Error — fixed height with scroll so panel never expands */}
           <div className={clsx(
-            "font-mono-custom text-[9px] leading-relaxed mt-1",
-            agent.errorInfo ? "text-danger/80" : "text-muted line-clamp-3",
+            "font-mono-custom text-[9px] leading-relaxed mt-1 overflow-hidden",
+            agent.errorInfo ? "text-danger/80" : "text-muted",
             agent.isThinking && !agent.errorInfo && "animate-pulse"
-          )}>
+          )}
+          style={{ maxHeight: "72px", WebkitLineClamp: 4, overflow: "hidden", display: "-webkit-box", WebkitBoxOrient: "vertical" }}
+          title={agent.errorInfo?.message || agent.reasoning}>
             {agent.errorInfo
               ? <span title={agent.errorInfo.message}>
                   ⚠ {agent.errorInfo.label}{agent.errorInfo.code === 429 ? " — Rate limit exceeded. Retrying next tick." : " — Agent unavailable."}
