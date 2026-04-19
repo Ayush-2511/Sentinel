@@ -1,0 +1,33 @@
+{
+  "name": "city_fire_hard",
+  "display_name": "HARD: IND Sector Breach",
+  "city_name": "Talkatora Industrial Area",
+  "description": "Explosion at a chemical storage facility. Toxic smoke spreading toward a nursing home. High conflict decision required.",
+  "sectors": [
+    {
+      "id": "IND-1", "name": "Chemical Depot 7", "type": "industrial", "row": 0, "col": 0,
+      "polygon": [[26.8320,80.9110],[26.8320,80.9250],[26.8250,80.9250],[26.8250,80.9110]],
+      "civilians": {"total": 5, "critical": 2, "stable": 3, "rescued": 0},
+      "infrastructure": "destroyed", "hazards": ["fire", "gas_leak"],
+      "fire_intensity": 0.95,
+      "resources_deployed": {"medical_teams": 0, "rescue_units": 0, "supply_caches": 0}
+    },
+    {
+      "id": "RES-1", "name": "Sunset Grove Elder Care", "type": "hospital", "row": 0, "col": 1,
+      "polygon": [[26.8320,80.9250],[26.8320,80.9390],[26.8250,80.9390],[26.8250,80.9250]],
+      "civilians": {"total": 85, "critical": 12, "stable": 73, "rescued": 5},
+      "infrastructure": "damaged", "hazards": ["fire_threat"],
+      "fire_intensity": 0.10,
+      "resources_deployed": {"medical_teams": 0, "rescue_units": 0, "supply_caches": 0}
+    },
+    {
+      "id": "BUF-1", "name": "Fire Buffer Zone", "type": "park", "row": 1, "col": 0,
+      "polygon": [[26.8250,80.9110],[26.8250,80.9250],[26.8180,80.9250],[26.8180,80.9110]],
+      "civilians": {"total": 0, "critical": 0, "stable": 0, "rescued": 0},
+      "infrastructure": "intact", "hazards": [],
+      "fire_intensity": 0.0,
+      "resources_deployed": {"medical_teams": 0, "rescue_units": 0, "supply_caches": 0}
+    }
+  ],
+  "global_resources": { "medical_teams": 3, "rescue_units": 3, "supply_caches": 5 }
+}

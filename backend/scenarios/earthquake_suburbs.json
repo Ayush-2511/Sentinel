@@ -1,0 +1,23 @@
+{
+  "name": "earthquake_suburbs",
+  "display_name": "Suburban Shift",
+  "city_name": "Gomti Nagar Extension",
+  "description": "6.2 magnitude shock hit the residential outskirts. Multiple local blockages reported.",
+  "sectors": [
+    {
+      "id": "S1", "name": "Block C Residential", "type": "residential", "row": 0, "col": 0,
+      "polygon": [[26.8650,81.0100],[26.8650,81.0250],[26.8580,81.0250],[26.8580,81.0100]],
+      "civilians": {"total": 40, "critical": 4, "stable": 36, "rescued": 0},
+      "infrastructure": "damaged", "hazards": ["structural_collapse"],
+      "resources_deployed": {"medical_teams": 0, "rescue_units": 0, "supply_caches": 0}
+    },
+    {
+      "id": "S2", "name": "Block D Residential", "type": "residential", "row": 0, "col": 1,
+      "polygon": [[26.8650,81.0250],[26.8650,81.0400],[26.8580,81.0400],[26.8580,81.0250]],
+      "civilians": {"total": 35, "critical": 0, "stable": 35, "rescued": 0},
+      "infrastructure": "intact", "hazards": [],
+      "resources_deployed": {"medical_teams": 0, "rescue_units": 0, "supply_caches": 0}
+    }
+  ],
+  "global_resources": { "medical_teams": 4, "rescue_units": 4, "supply_caches": 5 }
+}

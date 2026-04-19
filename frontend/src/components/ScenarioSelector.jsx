@@ -7,9 +7,13 @@ export default function ScenarioSelector({ onLoad, current }) {
 
   const scenarios = [
     { id: "city_fire", name: "URBAN FIRE", icon: "🔥", severity: "CRITICAL", sClass: "text-danger" },
+    { id: "city_fire_highrise", name: "FIRE: HIGH-RISE", icon: "🏙️", severity: "CRITICAL", sClass: "text-danger" },
+    { id: "city_fire_hard", name: "FIRE: INDUSTRIAL HARD", icon: "☣️", severity: "CRITICAL", sClass: "text-danger" },
     { id: "earthquake", name: "EARTHQUAKE", icon: "🏚️", severity: "HIGH", sClass: "text-warning" },
-    { id: "flood", name: "FLOOD", icon: "🌊", severity: "HIGH", sClass: "text-warning" },
+    { id: "earthquake_suburbs", name: "EQ: SUBURBAN", icon: "🏡", severity: "HIGH", sClass: "text-warning" },
+    { id: "earthquake_hard", name: "EQ: POWER GRID HARD", icon: "⚡", severity: "CRITICAL", sClass: "text-danger" },
     { id: "building_collapse", name: "BUILDING COLLAPSE", icon: "🏗️", severity: "MEDIUM", sClass: "text-teal" },
+    { id: "collapse_hard", name: "COLLAPSE: MUSEUM HARD", icon: "🏛️", severity: "HIGH", sClass: "text-warning" },
   ];
 
   const activeScen = scenarios.find(s => s.id === current) || { name: "SELECT MISSION", icon: "⚙️" };

@@ -551,7 +551,9 @@ def handle_trigger_event(data):
 # ══════════════════════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
+    import os
+    port = int(os.environ.get("PORT", 5001))
     print("=" * 55)
-    print("  SENTINEL SERVER  —  http://localhost:5001")
+    print(f"  SENTINEL SERVER  —  Active on Port {port}")
     print("=" * 55)
-    socketio.run(app, host="0.0.0.0", port=5001, debug=False, allow_unsafe_werkzeug=True)
+    socketio.run(app, host="0.0.0.0", port=port, debug=False, allow_unsafe_werkzeug=True)

@@ -1,0 +1,23 @@
+{
+  "name": "earthquake_metro",
+  "display_name": "Metro Artery Shift",
+  "city_name": "Lucknow North Metro Line",
+  "description": "Earthquake triggered a major failure in the Metro Transit corridor. Multiple subterranean collapses.",
+  "sectors": [
+    {
+      "id": "M1", "name": "IT College Metro Station", "type": "commercial", "row": 0, "col": 0,
+      "polygon": [[26.8780,80.9500],[26.8780,80.9650],[26.8710,80.9650],[26.8710,80.9500]],
+      "civilians": {"total": 80, "critical": 22, "stable": 45, "rescued": 13},
+      "infrastructure": "destroyed", "hazards": ["structural_collapse", "gas_leak"],
+      "resources_deployed": {"medical_teams": 0, "rescue_units": 0, "supply_caches": 0}
+    },
+    {
+      "id": "M2", "name": "Badshahnagar Transit", "type": "commercial", "row": 0, "col": 1,
+      "polygon": [[26.8780,80.9650],[26.8780,80.9800],[26.8710,80.9800],[26.8710,80.9650]],
+      "civilians": {"total": 35, "critical": 8, "stable": 25, "rescued": 2},
+      "infrastructure": "damaged", "hazards": ["structural_collapse"],
+      "resources_deployed": {"medical_teams": 0, "rescue_units": 0, "supply_caches": 0}
+    }
+  ],
+  "global_resources": { "medical_teams": 6, "rescue_units": 10, "supply_caches": 12 }
+}

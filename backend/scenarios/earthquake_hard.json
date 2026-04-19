@@ -1,0 +1,23 @@
+{
+  "name": "earthquake_hard",
+  "display_name": "HARD: Grid Fracture",
+  "city_name": "Amausi Central Switch",
+  "description": "Critical power grid failure cascading across the city. Adjacent refugee camp in panic. Strategic resource conflict.",
+  "sectors": [
+    {
+      "id": "GRID-1", "name": "Main Regional SwitchStation", "type": "industrial", "row": 0, "col": 0,
+      "polygon": [[26.7650,80.8900],[26.7650,80.9100],[26.7550,80.9100],[26.7550,80.8900]],
+      "civilians": {"total": 8, "critical": 1, "stable": 7, "rescued": 0},
+      "infrastructure": "destroyed", "hazards": ["electrical_fire", "gas_leak"],
+      "resources_deployed": {"medical_teams": 0, "rescue_units": 0, "supply_caches": 0}
+    },
+    {
+      "id": "CAMP-1", "name": "Alambagh Refugee Intake", "type": "residential", "row": 0, "col": 1,
+      "polygon": [[26.7650,80.9100],[26.7650,80.9300],[26.7550,80.9300],[26.7550,80.9100]],
+      "civilians": {"total": 350, "critical": 45, "stable": 305, "rescued": 10},
+      "infrastructure": "damaged", "hazards": ["structural_collapse"],
+      "resources_deployed": {"medical_teams": 0, "rescue_units": 0, "supply_caches": 0}
+    }
+  ],
+  "global_resources": { "medical_teams": 10, "rescue_units": 10, "supply_caches": 20 }
+}

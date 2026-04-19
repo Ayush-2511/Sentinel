@@ -1,0 +1,23 @@
+{
+  "name": "collapse_hard",
+  "display_name": "HARD: Cultural Custody",
+  "city_name": "Lucknow Old City Heritage Zone",
+  "description": "Historical Museum partially collapsed. Adjacent residential tenements showing deep cracks. Dilemma: Artifacts or Souls?",
+  "sectors": [
+    {
+      "id": "HERITAGE-1", "name": "Lucknow Heritage Museum", "type": "commercial", "row": 0, "col": 0,
+      "polygon": [[26.8680,80.9150],[26.8680,80.9250],[26.8610,80.9250],[26.8610,80.9150]],
+      "civilians": {"total": 15, "critical": 2, "stable": 13, "rescued": 0},
+      "infrastructure": "destroyed", "hazards": ["structural_collapse", "fire"],
+      "resources_deployed": {"medical_teams": 0, "rescue_units": 0, "supply_caches": 0}
+    },
+    {
+      "id": "TENEMENT-1", "name": "Gulab Bari Apartments", "type": "residential", "row": 0, "col": 1,
+      "polygon": [[26.8680,80.9250],[26.8680,80.9350],[26.8610,80.9350],[26.8610,80.9250]],
+      "civilians": {"total": 140, "critical": 18, "stable": 122, "rescued": 5},
+      "infrastructure": "damaged", "hazards": ["structural_collapse"],
+      "resources_deployed": {"medical_teams": 0, "rescue_units": 0, "supply_caches": 0}
+    }
+  ],
+  "global_resources": { "medical_teams": 5, "rescue_units": 12, "supply_caches": 8 }
+}

@@ -1,0 +1,41 @@
+{
+  "name": "city_fire_highrise",
+  "display_name": "High-Rise Inferno",
+  "city_name": "Lucknow Metro Tower Complex",
+  "description": "Electrical fire on the 10th floor spreading vertically. Dense residential towers in play.",
+  "sectors": [
+    {
+      "id": "T1", "name": "Skyline Tower A", "type": "residential", "row": 0, "col": 0,
+      "polygon": [[26.8520,80.9410],[26.8520,80.9480],[26.8450,80.9480],[26.8450,80.9410]],
+      "civilians": {"total": 120, "critical": 15, "stable": 95, "rescued": 10},
+      "infrastructure": "damaged", "hazards": ["fire"],
+      "fire_intensity": 0.75,
+      "resources_deployed": {"medical_teams": 0, "rescue_units": 0, "supply_caches": 0}
+    },
+    {
+      "id": "T2", "name": "Skyline Tower B", "type": "residential", "row": 0, "col": 1,
+      "polygon": [[26.8520,80.9480],[26.8520,80.9550],[26.8450,80.9550],[26.8450,80.9480]],
+      "civilians": {"total": 110, "critical": 2, "stable": 105, "rescued": 3},
+      "infrastructure": "intact", "hazards": ["fire_threat"],
+      "fire_intensity": 0.15,
+      "resources_deployed": {"medical_teams": 0, "rescue_units": 0, "supply_caches": 0}
+    },
+    {
+      "id": "T3", "name": "Tower Plaza", "type": "commercial", "row": 1, "col": 0,
+      "polygon": [[26.8450,80.9410],[26.8450,80.9480],[26.8380,80.9480],[26.8380,80.9410]],
+      "civilians": {"total": 60, "critical": 8, "stable": 45, "rescued": 7},
+      "infrastructure": "damaged", "hazards": ["fire"],
+      "fire_intensity": 0.45,
+      "resources_deployed": {"medical_teams": 0, "rescue_units": 0, "supply_caches": 0}
+    },
+    {
+      "id": "T4", "name": "Recreation Park", "type": "park", "row": 1, "col": 1,
+      "polygon": [[26.8450,80.9480],[26.8450,80.9550],[26.8380,80.9550],[26.8380,80.9480]],
+      "civilians": {"total": 20, "critical": 0, "stable": 20, "rescued": 0},
+      "infrastructure": "intact", "hazards": [],
+      "fire_intensity": 0.0,
+      "resources_deployed": {"medical_teams": 0, "rescue_units": 0, "supply_caches": 0}
+    }
+  ],
+  "global_resources": { "medical_teams": 8, "rescue_units": 6, "supply_caches": 10 }
+}

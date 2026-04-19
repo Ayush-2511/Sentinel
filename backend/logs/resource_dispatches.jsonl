@@ -160,3 +160,5 @@
 {"tick": 10, "agent": "CASPER", "action": "MEDICAL", "target": "D2", "req": 1, "snt": 1, "rej": 0, "reason": "SUCCESSFUL_ALLOCATION"}
 {"tick": 12, "agent": "MELCHIOR", "action": "SUPPLY", "target": "B3", "req": 2, "snt": 2, "rej": 0, "reason": "SUCCESSFUL_ALLOCATION"}
 {"tick": 1, "agent": "CASPER", "action": "MEDICAL", "target": "D3", "req": 1, "snt": 1, "rej": 0, "reason": "SUCCESSFUL_ALLOCATION"}
+{"tick": 4, "agent": "CASPER", "action": "MEDICAL", "target": "D3", "req": 1, "snt": 1, "rej": 0, "reason": "SUCCESSFUL_ALLOCATION"}
+{"tick": 1, "agent": "CASPER", "action": "MEDICAL", "target": "T1", "req": 1, "snt": 1, "rej": 0, "reason": "SUCCESSFUL_ALLOCATION"}
