@@ -4,6 +4,7 @@ eventlet.monkey_patch()
 import os
 import sys
 import json
+import random
 import threading
 import time
 import copy
@@ -22,6 +23,7 @@ from agents.casper import Casper
 from agents.melchior import Melchior
 from agents.balthasar import Balthasar
 from agents.voting import VotingEngine
+from agents.intel_tracker import IntelTracker
 
 # Search .env in backend dir AND parent Sentinel dir
 for _env_path in [
@@ -47,7 +49,8 @@ socketio = SocketIO(
 # ── Engine & Agents ────────────────────────────────────────────────────────────
 city_engine = CityEngine()
 event_engine = EventEngine()
-voter = VotingEngine()
+intel_tracker = IntelTracker(window=10)
+voter = VotingEngine(intel_tracker=intel_tracker)
 
 api_key = os.getenv("GROQ_API_KEY")
 agents = []
@@ -63,7 +66,7 @@ else:
 SCENARIOS_DIR = os.path.join(os.path.dirname(__file__), "scenarios")
 
 # ── Simulation State (protected by a lock) ─────────────────────────────────────
-_lock = threading.Lock()
+_lock = threading.RLock() # Changed to RLock for re-entrant safety
 sim = {
     "state": None,
     "is_running": False,
@@ -139,9 +142,50 @@ def _simulation_loop():
 
         # Advance simulation
         with _lock:
+            # ── 1. Update Intel Signals (SOS & News Simulation) ──
+            if sim["state"] is not None:
+                for sector in sim["state"]["sectors"]:
+                    # Bug Fix: Initialize intel_signals if first tick hasn't run city.py yet
+                    if "intel_signals" not in sector:
+                        sector["intel_signals"] = {
+                            "sos_count": 0,
+                            "news_confirmed": False,
+                            "infrastructure_alert": sector["infrastructure"] != "intact"
+                        }
+
+                    fire = sector.get("fire_intensity", 0.0)
+                    infra_bad = sector["infrastructure"] != "intact"
+
+                    if fire > 0.1 or infra_bad:
+                        # ── SOS Simulator (Filtered) ──
+                        # Raw citizen noise filtered down to 80% (removes spam/DDoS)
+                        raw_noise = random.randint(5, 30) if fire > 0.4 else random.randint(1, 10)
+                        sector["intel_signals"]["sos_count"] = int(raw_noise * 0.8)
+
+                        # ── News Monitor ──
+                        # 20% chance per tick that a major fire gets media coverage
+                        if fire > 0.6 and not sector["intel_signals"]["news_confirmed"]:
+                            if random.random() < 0.20:
+                                sector["intel_signals"]["news_confirmed"] = True
+                                print(f"[NEWS] Flash Report: Large blaze confirmed in {sector['id']}")
+                    else:
+                        # Safe area — clear all signals
+                        sector["intel_signals"]["sos_count"] = 0
+                        sector["intel_signals"]["news_confirmed"] = False
+
+            # ── 2. Tick the engine ──
             sim["state"] = city_engine.tick(sim["state"])
             sim["state"]["is_running"] = True
             tick = sim["state"]["tick"]
+            
+            # ── 3. Escalation Loop: Field Verification ──
+            for sector in sim["state"]["sectors"]:
+                # If units are present and there is a hazard, escalate to HIGH confidence
+                units_present = sum(sector["resources_deployed"].values())
+                if units_present > 0 and (sector["fire_intensity"] > 0 or sector["infrastructure"] != "intact"):
+                    if not sector.get("_probe_verified", False):
+                        sector["_probe_verified"] = True
+                        print(f"[INTEL] Sector {sector['id']} ESCALATED to HIGH (Confirmed by Field Units)")
 
         print(f"[SIM] Tick {tick}")
         _emit_state()
@@ -240,16 +284,24 @@ def _mock_ai_vote(state_snapshot: dict):
 
         result = voter.resolve(votes, state_snapshot)
 
-        with _lock:
-            if sim["state"] is not None:
-                for res in result["resolutions"]:
-                    sim["state"] = city_engine.execute_action(
-                        sim["state"],
-                        res["action"],
-                        res["target"]
-                    )
+        # Bug Fix: MOCK mode now uses the same tiered dispatch as REAL mode
+        for res in result["resolutions"]:
+            action = res["action"]
+            target = res["target"]
+            fraction = result.get("dispatch_fraction", 1.0)
+            pool_map = {"dispatch_medical": "medical_teams", "dispatch_rescue": "rescue_units", "dispatch_supply": "supply_caches"}
+            resource_key = pool_map.get(action)
+            with _lock:
+                total_avail = sim["state"]["global_resources"].get(resource_key, 0) if resource_key and sim["state"] else 0
+            units_to_send = 3 if fraction >= 0.8 else 1
+            units_to_send = min(max(units_to_send, 1 if action != "hold" else 0), total_avail)
+            for _ in range(units_to_send):
+                with _lock:
+                    if sim["state"]:
+                        sim["state"] = city_engine.execute_action(sim["state"], action, target)
+                _emit_state()
+                time.sleep(0.5)
 
-        _emit_state()
         socketio.emit("vote_result", result)
         
         if result["resolutions"]:
@@ -320,15 +372,32 @@ def _ai_vote(state_snapshot: dict):
 
         result = voter.resolve(votes, state_snapshot)
 
-        with _lock:
-            if sim["state"] is not None:
-                # Apply all winning resolutions (Consensus bundling)
-                for res in result["resolutions"]:
-                    sim["state"] = city_engine.execute_action(
-                        sim["state"],
-                        res["action"],
-                        res["target"]
-                    )
+        # Apply winning resolutions with tiered dispatch
+        for res in result["resolutions"]:
+            action = res["action"]
+            target = res["target"]
+            fraction = result.get("dispatch_fraction", 1.0)
+            
+            # Find available tactical pool
+            pool_map = {"dispatch_medical": "medical_teams", "dispatch_rescue": "rescue_units", "dispatch_supply": "supply_caches"}
+            resource_key = pool_map.get(action)
+            
+            with _lock:
+                total_avail = sim["state"]["global_resources"].get(resource_key, 0) if resource_key and sim["state"] else 0
+            
+            # 100% = 3 units, 45% = 1 unit, 15% = 1 unit
+            if fraction >= 0.8: units_to_send = 3
+            else: units_to_send = 1
+            
+            units_to_send = min(units_to_send, total_avail)
+            if units_to_send < 1 and action != "hold": units_to_send = 1
+
+            for _ in range(units_to_send):
+                with _lock:
+                    if sim["state"]:
+                        sim["state"] = city_engine.execute_action(sim["state"], action, target)
+                _emit_state()
+                time.sleep(0.5)
 
         _emit_state()
         socketio.emit("vote_result", result)
@@ -376,6 +445,17 @@ def handle_load_scenario(data):
     if state is None:
         emit("error", {"message": f"Scenario '{name}' not found."})
         return
+
+    # Bug Fix: Reset all intel state on every scenario load to prevent bleed-over
+    intel_tracker.reset()
+    for sector in state.get("sectors", []):
+        sector.pop("_probe_verified",  None)
+        sector.pop("_confidence_tier", None)
+        sector["intel_signals"] = {
+            "sos_count": 0,
+            "news_confirmed": False,
+            "infrastructure_alert": sector["infrastructure"] != "intact"
+        }
 
     with _lock:
         sim["is_running"] = False
