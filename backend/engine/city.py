@@ -26,7 +26,7 @@ class CityEngine:
 
             # Fire grows each tick in burning sectors
             if fire > 0:
-                sector["fire_intensity"] = min(1.0, fire + 0.05)
+                sector["fire_intensity"] = min(1.0, fire + 0.03)
                 if "fire" not in sector["hazards"]:
                     sector["hazards"].append("fire")
                 # Fire damages infrastructure
@@ -56,7 +56,10 @@ class CityEngine:
                 fire_fighting_power += 0.1
             
             if fire_fighting_power > 0 and fire > 0:
-                sector["fire_intensity"] = max(0, sector["fire_intensity"] - fire_fighting_power)
+                # Fire fighting and containment: ensures growth (+0.03) is always overpowered
+                # by any active unit or 'saved' status.
+                reduction = max(0.05, fire_fighting_power) 
+                sector["fire_intensity"] = max(0, sector["fire_intensity"] - reduction)
                 if sector["fire_intensity"] <= 0:
                     sector["hazards"] = [h for h in sector["hazards"] if h != "fire"]
                     sector["fire_intensity"] = 0
@@ -101,8 +104,8 @@ class CityEngine:
         new_fires = []
         for sector in sectors:
             fire = sector.get("fire_intensity", 0.0)
-            if fire < 0.3:
-                continue  # Fire too weak to spread
+            if fire < 0.5:
+                continue  # Fire needs to be significant to jump sectors
 
             # Find adjacent sectors (differ by 1 in row OR col, not both)
             for other in sectors:
@@ -113,9 +116,12 @@ class CityEngine:
                 if (dr + dc) == 1:  # Adjacent (not diagonal)
                     other_fire = other.get("fire_intensity", 0.0)
                     if other_fire == 0:
-                        # Chance to ignite = fire_intensity * 0.15
-                        if random.random() < fire * 0.15:
-                            new_fires.append((other["id"], fire * 0.2))
+                        # NEW: Containment Factor. If source sector has ANY unit, spread chance is cut by 70%.
+                        cont = 0.3 if sum(sector["resources_deployed"].values()) > 0 else 1.0
+                        
+                        # Chance to ignite = fire_intensity * 0.08 (Slower spread) * cont
+                        if random.random() < (fire * 0.08 * cont):
+                            new_fires.append((other["id"], fire * 0.15))
 
         for sector_id, intensity in new_fires:
             s = next((s for s in sectors if s["id"] == sector_id), None)
@@ -139,7 +145,9 @@ class CityEngine:
             dc = abs(other["col"] - sector["col"])
             if (dr + dc) == 1:
                 other_fire = other.get("fire_intensity", 0.0)
-                threat += other_fire * 0.15
+                # Apply containment factor to threat awareness
+                cont = 0.3 if sum(other["resources_deployed"].values()) > 0 else 1.0
+                threat += (other_fire * 0.15 * cont)
         return threat
 
     def execute_action(self, state: dict, action: str, target_sector_id: str) -> dict:

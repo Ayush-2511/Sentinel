@@ -24,10 +24,10 @@ class BaseAgent:
             max_tokens=300,
         )
 
-    def vote(self, state: dict) -> dict:
-        """Call the LLM and return a structured vote dict."""
-        prompt = self._build_prompt(state)
+    def vote(self, state: dict, previous_votes: list = None) -> dict:
+        """Query LLM for a vote on this city state."""
         try:
+            prompt = self._build_prompt(state, previous_votes)
             response = self.llm.invoke([
                 SystemMessage(content=self.SYSTEM_PROMPT),
                 HumanMessage(content=prompt),
@@ -43,7 +43,7 @@ class BaseAgent:
                 "tick": state["tick"],
             }
 
-    def _build_prompt(self, state: dict) -> str:
+    def _build_prompt(self, state: dict, previous_votes: list = None) -> str:
         """Build a sector-based prompt for the LLM."""
         sectors = state["sectors"]
 
@@ -68,11 +68,18 @@ class BaseAgent:
                 f"| severity: {s['severity_score']:.2f}{fire_str}"
             )
 
+        coordination_context = ""
+        if previous_votes:
+            coordination_context = "\nCURRENT DELIBERATIONS (Other agents have already voted for this turn):\n"
+            for v in previous_votes:
+                coordination_context += f"- {v['agent']}: {v['proposed_action']} to {v['target_sector'] or 'Global'}\n"
+            coordination_context += "\nSTRATEGY: Avoid duplicating the exact same resource type to the same sector unless necessary. Coverage is key.\n"
+
         res = state["global_resources"]
         tc = state["total_civilians"]
 
         return f"""TICK {state['tick']} — {state.get('city_name', 'City')} DISASTER STATE
-
+{coordination_context}
 SECTORS BY SEVERITY:
 {chr(10).join(sector_lines)}
 
@@ -84,7 +91,7 @@ GLOBAL RESOURCES AVAILABLE:
 TOTALS: {tc['critical']} critical | {tc['stable']} stable | {tc['rescued']} rescued
 SURVIVAL RATE: {state['survival_rate'] * 100:.0f}%
 
-IMPORTANT: Fire spreads to adjacent sectors. Higher intensity = more casualties. Saving all civilians in a sector allows the area to be secured, causing fire to decay naturally.
+IMPORTANT: Fire spreads to adjacent sectors. ANY UNIT dispatched to a burning sector provides CONTAINMENT, reducing outward spread by 70%. Saving all civilians allows the area to be secured, causing fire to decay naturally even at 100% intensity.
 
 Respond ONLY with this exact JSON, no other text:
 {{

@@ -274,7 +274,8 @@ def _ai_vote(state_snapshot: dict):
             print(f"[AI] Asking {name}…")
 
             try:
-                vote = agent.vote(state_snapshot)
+                # pass previous votes for sequential awareness
+                vote = agent.vote(state_snapshot, previous_votes=votes)
                 votes.append(vote)
                 socketio.emit("agent_vote", vote)
                 socketio.emit("agent_thinking", {"agent": name, "status": "done"})

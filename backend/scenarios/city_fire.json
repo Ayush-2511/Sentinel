@@ -53,5 +53,5 @@
       "resources_deployed": {"medical_teams": 0, "rescue_units": 0, "supply_caches": 0}
     }
   ],
-  "global_resources": { "medical_teams": 2, "rescue_units": 2, "supply_caches": 3 }
+  "global_resources": { "medical_teams": 4, "rescue_units": 4, "supply_caches": 6 }
 }

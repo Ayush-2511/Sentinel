@@ -59,9 +59,14 @@ The simulation world is divided into **12 Sectors** (A1 to D3) based on real-wor
     - **Supply Caches**: Primary fire fighting (Reduces intensity by 15-30%).
     - **Rescue Units**: Secondary suppression (Reduces intensity by 5%).
     - **Saved Areas**: If a sector is cleared of all at-risk civilians, fire naturally decays (Secured Area Bonus).
+- **Calibration (v2.2)**:
+    - **Growth Rate**: +0.03 per tick.
+    - **Ignition Chance**: 8% (requires 0.5+ intensity in source sector).
+    - **Containment Factor**: ANY unit (Medical/Rescue/Supply) reduces outward spread chance by **70%** (0.3x multiplier).
+    - **Robust Decay**: 'Saved' sectors (0 at-risk civilians) see -0.10 intensity/tick, guaranteed to overpower growth.
 
 ### 3.3 Agent Intelligence
-- **Sequential Deliberation**: Agents think one-by-one to avoid rate limits.
+- **Sequential Awareness (v2.3)**: Agents think one-by-one and are aware of previous votes in the same tick. This prevents redundant resource allocation.
 - **Situational Awareness**: Agents receive raw JSON snapshots of city sectors, fire spread rates, and resource statuses.
 - **The Vote**:
     1. Agents propose an action (`dispatch_medical`, `dispatch_rescue`, `dispatch_supply`).
@@ -71,6 +76,8 @@ The simulation world is divided into **12 Sectors** (A1 to D3) based on real-wor
 ---
 
 ## 4. Technical Data Contracts
+...
+(Resources increased by ~60% across all missions in v2.3 calibration)
 
 ### 4.1 City State Update (Backend → Frontend)
 ```json

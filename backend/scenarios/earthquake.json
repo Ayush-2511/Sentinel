@@ -53,5 +53,5 @@
       "civilians":{"total":15,"critical":0,"stable":14,"rescued":1},"infrastructure":"intact","hazards":[],
       "resources_deployed":{"medical_teams":0,"rescue_units":0,"supply_caches":0} }
   ],
-  "global_resources": { "medical_teams": 3, "rescue_units": 4, "supply_caches": 5 }
+  "global_resources": { "medical_teams": 5, "rescue_units": 7, "supply_caches": 8 }
 }
