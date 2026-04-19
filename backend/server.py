@@ -182,7 +182,7 @@ def _simulation_loop():
             for sector in sim["state"]["sectors"]:
                 # If units are present and there is a hazard, escalate to HIGH confidence
                 units_present = sum(sector["resources_deployed"].values())
-                if units_present > 0 and (sector["fire_intensity"] > 0 or sector["infrastructure"] != "intact"):
+                if units_present > 0 and (sector.get("fire_intensity", 0) > 0 or sector["infrastructure"] != "intact"):
                     if not sector.get("_probe_verified", False):
                         sector["_probe_verified"] = True
                         print(f"[INTEL] Sector {sector['id']} ESCALATED to HIGH (Confirmed by Field Units)")
@@ -334,112 +334,114 @@ def _mock_ai_vote(state_snapshot: dict):
 #  REAL AI VOTING
 # ══════════════════════════════════════════════════════════════════════════════
 
+from agents.resource_manager import ResourceManager
+resource_mgr = ResourceManager()
+
 def _ai_vote(state_snapshot: dict):
-    """Query all 3 LLM agents sequentially, resolve vote, apply action."""
+    """Query specialists independently, then Melchior (Commander), resolve and dispatch."""
     agent_names = ["CASPER", "MELCHIOR", "BALTHASAR"]
     votes = []
 
     try:
-        for i, agent in enumerate(agents):
-            name = agent_names[i]
+        # Step 1: Specialists (Independent Reports)
+        for idx in [0, 2]:
+            name = agent_names[idx]
+            agent = agents[idx]
             
-            # Check if simulation is still running before each agent thinks
             with _lock:
-                if not sim["is_running"]:
-                    print(f"[AI] Deliberation halted - Simulation PAUSED.")
-                    return
+                if not sim["is_running"]: return
 
             socketio.emit("agent_thinking", {"agent": name, "status": "thinking"})
-            print(f"[AI] Asking {name}…")
+            print(f"[AI] {name} generating Field Report…")
 
             try:
-                # pass previous votes for sequential awareness
-                vote = agent.vote(state_snapshot, previous_votes=votes)
-                votes.append(vote)
-                socketio.emit("agent_vote", vote)
-                socketio.emit("agent_thinking", {"agent": name, "status": "done"})
-            except Exception as agent_err:
-                err_str = str(agent_err)
-                import re as _re
-                m = _re.search(r'\b(4\d\d|5\d\d)\b', err_str)
-                err_code = int(m.group(1)) if m else None
-                label = f"Error {err_code}" if err_code else "Error"
-
-                print(f"[AI] {name} failed: {label} — {err_str[:120]}")
-                socketio.emit("agent_error_detail", {
-                    "agent": name, "code": err_code,
-                    "message": err_str[:200], "label": label,
-                })
-                socketio.emit("agent_thinking", {"agent": name, "status": "error"})
-
+                v = agent.vote(state_snapshot, previous_votes=None)
+                if not v: raise ValueError("Empty response")
+                votes.append(v)
+                socketio.emit("agent_vote", v)
+            except Exception as e:
+                print(f"[AI] {name} Field Report Failed: {e}")
                 votes.append({
-                    "agent": name,
-                    "proposed_action": "hold",
-                    "target_sector": None,
-                    "reasoning": f"[{label}] Agent unavailable.",
-                    "priority_score": 0.0,
-                    "tick": state_snapshot.get("tick", 0),
+                    "agent": name, "proposed_action": "hold", "target_sector": None,
+                    "reasoning": f"Reporting Offline: {str(e)[:50]}", "priority_score": 0.0,
+                    "tick": state_snapshot.get("tick", 0)
                 })
+            socketio.emit("agent_thinking", {"agent": name, "status": "done"})
+            time.sleep(1.0)
 
-            time.sleep(3.0)  # Rate limit: 3s between LLM calls
+        # Step 2: Commander (Strategic Review)
+        commander_name = "MELCHIOR"
+        agent = agents[1]
+
+        with _lock:
+            if not sim["is_running"]: return
+
+        socketio.emit("agent_thinking", {"agent": commander_name, "status": "thinking"})
+        print(f"[AI] COMMANDER {commander_name} reviewing field reports…")
+
+        try:
+            v = agent.vote(state_snapshot, previous_votes=votes)
+            votes.append(v)
+            socketio.emit("agent_vote", v)
+        except Exception as e:
+            print(f"[AI] COMMANDER {commander_name} Arbitration Failed: {e}")
+            votes.append({
+                "agent": commander_name, "proposed_action": "hold", "target_sector": None,
+                "reasoning": "Command Center Offline.", "priority_score": 0.0,
+                "tick": state_snapshot.get("tick", 0)
+            })
+        socketio.emit("agent_thinking", {"agent": commander_name, "status": "done"})
 
         result = voter.resolve(votes, state_snapshot)
 
-        # Apply winning resolutions with tiered dispatch
-        for res in result["resolutions"]:
-            action = res["action"]
-            target = res["target"]
-            fraction = result.get("dispatch_fraction", 1.0)
+        # Step 3: Smart Dispatch via Resource Manager
+        resolutions = result.get("resolutions", [])
+        if not resolutions:
+            print("[AI] No tactical actions authorized by Command.")
+        
+        for res in resolutions:
+            # Calculate dynamic budget (SNT vs REQ)
+            sent, requested, reason = resource_mgr.calculate_budget(res, state_snapshot)
             
-            # Find available tactical pool
-            pool_map = {"dispatch_medical": "medical_teams", "dispatch_rescue": "rescue_units", "dispatch_supply": "supply_caches"}
-            resource_key = pool_map.get(action)
-            
-            with _lock:
-                total_avail = sim["state"]["global_resources"].get(resource_key, 0) if resource_key and sim["state"] else 0
-            
-            # 100% = 3 units, 45% = 1 unit, 15% = 1 unit
-            if fraction >= 0.8: units_to_send = 3
-            else: units_to_send = 1
-            
-            units_to_send = min(units_to_send, total_avail)
-            if units_to_send < 1 and action != "hold": units_to_send = 1
+            if sent > 0 or requested > 0:
+                print(f"[RESOURCE] {res['agent']} -> {res['target']}: Sent {sent}/{requested}. Reason: {reason}")
+                resource_mgr.log_dispatch(
+                    state_snapshot.get("tick", 0), 
+                    res["agent"], res["action"], res["target"], 
+                    sent, requested, reason
+                )
+                
+                # Execute only 'sent' units
+                for _ in range(sent):
+                    with _lock:
+                        if sim["state"]:
+                            sim["state"] = city_engine.execute_action(sim["state"], res["action"], res["target"])
+                    _emit_state()
+                    time.sleep(0.3)
 
-            for _ in range(units_to_send):
-                with _lock:
-                    if sim["state"]:
-                        sim["state"] = city_engine.execute_action(sim["state"], action, target)
-                _emit_state()
-                time.sleep(0.5)
-
+        # Broadcast history to frontend
+        socketio.emit("dispatch_history", resource_mgr.get_history())
         _emit_state()
 
-        # Record agent accuracy based on their vote vs objective risk
-        for v in result.get("votes", []):
-            target_id = v.get("target_sector")
-            p_score = v.get("priority_score", 0.0)
-            risk = 0.0
-            if target_id:
-                sector = next((s for s in state_snapshot.get("sectors", []) if s["id"] == target_id), None)
-                if sector:
-                    risk = sector.get("risk_index", 0.0)
-            intel_tracker.record(v["agent"], p_score, risk, state_snapshot.get("tick", 0))
-
-        # Re-fetch accuracy for the payload
-        result["intel_accuracy"] = intel_tracker.get_all_accuracy()
+        # Step 4: Accuracy Tracking (Safely)
+        try:
+            for v in votes:
+                t_id = v.get("target_sector")
+                p_score = v.get("priority_score", 0.0)
+                risk = 0.0
+                if t_id:
+                    s = next((sec for sec in state_snapshot.get("sectors", []) if sec["id"] == t_id), None)
+                    risk = s.get("risk_index", 0.0) if s else 0.0
+                intel_tracker.record(v["agent"], p_score, risk, state_snapshot.get("tick", 0))
+            result["intel_accuracy"] = intel_tracker.get_all_accuracy()
+        except: pass
 
         socketio.emit("vote_result", result)
 
-        if result["resolutions"]:
-            actions_str = ", ".join([f"{r['agent']}->{r['action']}" for r in result["resolutions"]])
-            print(f"[AI] Vote resolved — {result['method']} | {actions_str}")
-        else:
-            print(f"[AI] Vote resolved — No Action")
-
     except Exception as e:
-        print(f"[AI] Fatal vote error: {e}")
+        print(f"[AI] FATAL DELIBERATION ERROR: {e}")
         socketio.emit("agent_error_detail", {
-            "agent": "ALL", "code": None, "message": str(e)[:200], "label": "Fatal Error",
+            "agent": "COMMAND", "code": None, "message": str(e)[:200], "label": "System Failure",
         })
     finally:
         with _lock:
@@ -457,6 +459,9 @@ def handle_connect():
         state = copy.deepcopy(sim["state"]) if sim["state"] else None
     if state:
         emit("state_update", state)
+    
+    # Send historical logs immediately so the UI isn't empty
+    emit("dispatch_history", resource_mgr.get_history())
 
 
 @socketio.on("disconnect")

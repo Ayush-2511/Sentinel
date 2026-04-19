@@ -10,6 +10,7 @@ export function useSocket() {
   const [agentThinking, setAgentThinking] = useState(null)
   const [latestVotes, setLatestVotes]     = useState({})
   const [agentErrors, setAgentErrors]     = useState({})  // agent -> { label, message, code }
+  const [dispatchHistory, setDispatchHistory] = useState([])
 
   useEffect(() => {
     socket.on("connect",    () => setConnected(true))
@@ -26,6 +27,10 @@ export function useSocket() {
       setLatestVotes({})      // reset per-round votes after resolution
       setAgentThinking(null)
       setAgentErrors({})      // clear errors on successful round
+    })
+
+    socket.on("dispatch_history", (d) => {
+      setDispatchHistory(d)
     })
 
     socket.on("agent_thinking", (d) => {
@@ -69,7 +74,7 @@ export function useSocket() {
 
   return {
     gridState, voteResult, voteHistory, connected, scenario,
-    agentThinking, latestVotes, agentErrors,
+    agentThinking, latestVotes, agentErrors, dispatchHistory,
     loadScenario:  (name)  => socket.emit("load_scenario",  { scenario: name }),
     triggerEvent:  (event) => socket.emit("trigger_event",  { event }),
     pause:         ()      => socket.emit("pause"),
@@ -83,6 +88,7 @@ export function useSocket() {
       setLatestVotes({})
       setAgentThinking(null)
       setAgentErrors({})
+      setDispatchHistory([])
     }
   }
 }

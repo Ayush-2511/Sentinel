@@ -6,10 +6,12 @@ import VoteHistory from "./components/VoteHistory"
 import SurvivalTracker from "./components/SurvivalTracker"
 import EventControls from "./components/EventControls"
 import ScenarioSelector from "./components/ScenarioSelector"
+import DispatchLog from "./components/DispatchLog"
 
 export default function App() {
   const sock = useSocket()
   const [lastWinnerSector, setLastWinnerSector] = useState(null)
+  const [showDispatchLogs, setShowDispatchLogs] = useState(false)
 
   const tick = sock.gridState?.tick || 0
   const res = sock.gridState?.global_resources || sock.gridState?.resources || {}
@@ -47,7 +49,7 @@ export default function App() {
 
   return (
     <>
-      <div className="h-[44px] bg-navyCard border-b border-navyBorder flex items-center justify-between px-4 relative after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1px] after:bg-gradient-to-r after:from-transparent after:via-teal after:to-transparent after:opacity-40">
+      <div className="h-[44px] bg-navyCard border-b border-navyBorder flex items-center justify-between px-4 relative after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1px] after:bg-gradient-to-r after:from-transparent after:via-teal after:to-transparent after:opacity-40 z-[999]">
         <div className="flex items-center gap-3 cursor-pointer group pl-2">
           {/* Minimalist target reticle */}
           <div className="w-[18px] h-[18px] border-[2px] border-teal flex items-center justify-center transform transition-all duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] group-hover:rotate-180 group-hover:scale-[1.2] shadow-[0_0_8px_var(--color-teal)]">
@@ -73,14 +75,38 @@ export default function App() {
             </div>
           )}
         </div>
-        <div className="flex items-center gap-4 font-mono-custom text-[10px] text-muted tracking-[1px]">
-          AGENTS <span className="text-teal">3/3</span> &nbsp;|&nbsp; API <span className="text-teal">OK</span> &nbsp;|&nbsp; TICK <span className="text-teal">{tick}</span>
+
+        <div className="flex items-center gap-6 relative">
+          <button 
+            onClick={() => setShowDispatchLogs(!showDispatchLogs)}
+            className={`flex items-center gap-2 px-3 py-1 rounded-sm border transition-all duration-300 font-data text-[11px] tracking-[2px] uppercase ${
+              showDispatchLogs 
+              ? 'bg-teal border-teal text-navy shadow-[0_0_15px_var(--color-teal)]' 
+              : 'bg-navyMid border-navyBorder text-muted hover:border-teal/50 hover:text-teal'
+            }`}
+          >
+            <span className="text-[12px]">☷</span> Resource Logs
+          </button>
+          
+          {/* RESOURCE LOGS DROPDOWN OVERLAY (Positioned below button) */}
+          {showDispatchLogs && (
+            <div className="absolute top-[calc(100%+8px)] right-0 w-[600px] h-[550px] z-[9999] animate-in fade-in slide-in-from-top-2 duration-300">
+              <DispatchLog 
+                history={sock.dispatchHistory || []} 
+                onClose={() => setShowDispatchLogs(false)} 
+              />
+            </div>
+          )}
+          
+          <div className="font-mono-custom text-[10px] text-muted tracking-[1px] hidden md:block">
+            AGENTS <span className="text-teal">3/3</span> &nbsp;|&nbsp; TICK <span className="text-teal">{tick}</span>
+          </div>
         </div>
       </div>
 
-      <div className="grid h-[calc(100vh-44px)] gap-0" style={{ gridTemplateColumns: "220px 1fr 300px" }}>
-
-        {/* SIDEBAR */}
+      <div className="relative grid h-[calc(100vh-44px)] gap-0" style={{ gridTemplateColumns: "220px 1fr 340px" }}>
+        
+        {/* SIDEBAR LEFT */}
         <div className="bg-navyCard border-r border-navyBorder flex flex-col overflow-y-auto overflow-x-hidden pt-2">
           
           {/* 1. HIGH PRIORITY STATS (Top) */}
@@ -240,20 +266,18 @@ export default function App() {
 
         {/* RIGHT */}
         <div className="bg-navyCard border-l border-navyBorder flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto">
-          <AgentPanels
-            voteResult={sock.voteResult}
-            latestVotes={sock.latestVotes}
-            agentThinking={sock.agentThinking}
-            agentErrors={sock.agentErrors}
-          />
+          {/* 1. Agent Panels (Real-time Field Reports) */}
+          <div className="shrink-0">
+            <AgentPanels
+              voteResult={sock.voteResult}
+              latestVotes={sock.latestVotes}
+              agentThinking={sock.agentThinking}
+              agentErrors={sock.agentErrors}
+            />
           </div>
 
-          <div className="shrink-0 border-t-2 border-navyBorder relative">
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal to-transparent opacity-30"></div>
-          </div>
-
-          <div className="shrink-0 min-h-[180px] max-h-[240px]">
+          {/* 2. Dynamic Vote History (Analytical Graphing) */}
+          <div className="flex-1 min-h-0 border-t border-navyBorder overflow-hidden">
             {sock.voteHistory.length >= 2 ? (
               <VoteHistory history={sock.voteHistory} />
             ) : (
@@ -265,7 +289,6 @@ export default function App() {
             )}
           </div>
         </div>
-
       </div>
     </>
   )

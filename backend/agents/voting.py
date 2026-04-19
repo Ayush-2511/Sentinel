@@ -10,148 +10,74 @@ class VotingEngine:
 
     def resolve(self, votes: list, state: dict) -> dict:
         """
-        Resolve votes. Supports Joint Operations if agents reach consensus on a sector.
-        Also handles: all-hold override, zone stacking penalty, MELCHIOR depletion veto.
+        Refactored for Triarchic Specialist Model (v3.0).
+        Melchior is the Logistics Commander and the "Deciding Vote."
         """
         if not votes:
             return self._empty_result(state.get("tick", 0))
 
-        # ── Pre-processing: Strip hold votes for stacking analysis ──
-        action_votes = [v for v in votes if v.get("proposed_action") != "hold"]
-
-        # ── Rule 1: All-Hold Override ──
-        # If ALL agents voted hold, find the highest-severity sector and escalate
-        # the highest-scoring agent's vote to dispatch_supply as a minimum probe.
-        if not action_votes:
-            res = state.get("global_resources", {})
-            has_resources = any(res.get(k, 0) > 0 for k in ["medical_teams", "rescue_units", "supply_caches"])
-            if has_resources:
-                worst_sector = max(
-                    state.get("sectors", []),
-                    key=lambda s: s.get("severity_score", 0),
-                    default=None
-                )
-                best_hold = max(votes, key=lambda v: v.get("priority_score", 0))
-                if worst_sector and worst_sector.get("severity_score", 0) > 0.1:
-                    print(f"[VOTE] All-Hold Override → Forcing minimum probe to {worst_sector['id']}")
-                    action = "dispatch_supply" if res.get("supply_caches", 0) > 0 else "dispatch_medical"
-                    override_vote = {**best_hold, "proposed_action": action, "target_sector": worst_sector["id"]}
-                    votes = [v if v["agent"] != best_hold["agent"] else override_vote for v in votes]
-                    action_votes = [override_vote]
-            if not action_votes:
+        # Step 1: Identify the Commander's Vote
+        commander_vote = next((v for v in votes if v["agent"] == "MELCHIOR"), None)
+        specialist_votes = [v for v in votes if v["agent"] in ["CASPER", "BALTHASAR"]]
+        
+        # If no Commander vote (error), fallback to highest specialist score
+        if not commander_vote or commander_vote["proposed_action"] == "hold":
+            sorted_specs = sorted(specialist_votes, key=lambda v: v["priority_score"], reverse=True)
+            if not sorted_specs or sorted_specs[0]["proposed_action"] == "hold":
                 return self._empty_result(state.get("tick", 0))
+            
+            top = sorted_specs[0]
+            return {
+                "tick": state.get("tick", 0),
+                "votes": votes,
+                "resolutions": [{
+                    "agent": top["agent"],
+                    "action": top["proposed_action"],
+                    "target": top["target_sector"],
+                    "is_joint": False
+                }],
+                "method": "specialist_fallback",
+                "primary_target": top.get("target_sector")
+            }
 
-        # ── Rule 2: Zone Stacking Penalty ──
-        # If 2+ agents all target the SAME sector, reduce their priority scores by 20%
-        # to encourage geographic coverage over pile-on.
-        target_counts = {}
-        for v in action_votes:
-            t = v.get("target_sector")
-            if t:
-                target_counts[t] = target_counts.get(t, 0) + 1
-
-        penalized_votes = []
-        for v in votes:
-            t = v.get("target_sector")
-            if t and target_counts.get(t, 0) >= 2 and v.get("proposed_action") != "hold":
-                # Apply 20% stacking penalty — does not veto, just reduces influence
-                v = {**v, "priority_score": round(v["priority_score"] * 0.80, 4)}
-                print(f"[VOTE] Zone Stacking Penalty: {v['agent']} → {t} score reduced to {v['priority_score']}")
-            penalized_votes.append(v)
-        votes = penalized_votes
-        action_votes = [v for v in votes if v.get("proposed_action") != "hold"]
-
-        # ── Rule 3: MELCHIOR Depletion Signal ──
-        # If total remaining resources ≤ 2, MELCHIOR vetoes any dispatch that would
-        # send units to an already-covered sector (has deployed resources).
-        res = state.get("global_resources", {})
-        total_remaining = sum(res.get(k, 0) for k in ["medical_teams", "rescue_units", "supply_caches"])
-        if total_remaining <= 2:
-            covered_sectors = set(
-                s["id"] for s in state.get("sectors", [])
-                if sum(s.get("resources_deployed", {}).values()) > 0
-            )
-            filtered_action_votes = [
-                v for v in action_votes
-                if v.get("target_sector") not in covered_sectors
-            ]
-            if filtered_action_votes:
-                print(f"[VOTE] MELCHIOR Depletion Signal: Redirecting from already-covered sectors")
-                action_votes = filtered_action_votes
-                votes = action_votes  # Only use the uncovered-sector votes
-
-        # Step 1: Consensus Check (Multi-Resolution)
-        # If agents agree on the TARGET_SECTOR but want different actions, bundle them.
+        # Step 2: Melchior's Deciding Vote
+        # Check if Melchior is "Ratifying" a specialist's choice (Consensus)
+        primary_target = commander_vote.get("target_sector")
         resolutions = []
         
-        # Group by sector
-        by_sector = {}
-        for v in action_votes:
-            s_id = v.get("target_sector")
-            if s_id:
-                if s_id not in by_sector: by_sector[s_id] = []
-                by_sector[s_id].append(v)
+        # Add Melchior's decision
+        resolutions.append({
+            "agent": "MELCHIOR",
+            "action": commander_vote["proposed_action"],
+            "target": primary_target,
+            "is_joint": False,
+            "priority_score": commander_vote.get("priority_score", 0.0)
+        })
 
-        # Check for Joint Ops (consensus on high-value sectors)
-        for s_id, sector_votes in by_sector.items():
-            # If 2+ agents agree on the sector and it's high priority
-            avg_score = sum(v["priority_score"] for v in sector_votes) / len(sector_votes)
-            if len(sector_votes) >= 2 and avg_score > 0.65:
-                # Joint Operation approved!
-                for v in sector_votes:
-                    resolutions.append({
-                        "agent": v["agent"],
-                        "action": v["proposed_action"],
-                        "target": v["target_sector"],
-                        "is_joint": True
-                    })
-                
-                return {
-                    "tick": state["tick"],
-                    "votes": votes,
-                    "resolutions": resolutions,
-                    "method": "consensus_joint_op",
-                    "primary_target": s_id
-                }
+        # Check for Joint Ops (Did a specialist agree on the sector?)
+        is_joint = False
+        for sv in specialist_votes:
+            if sv.get("target_sector") == primary_target and sv["proposed_action"] != "hold":
+                resolutions.append({
+                    "agent": sv["agent"],
+                    "action": sv["proposed_action"],
+                    "target": sv["target_sector"],
+                    "is_joint": True,
+                    "priority_score": sv.get("priority_score", 0.0)
+                })
+                is_joint = True
 
-        # Step 2: Individual Resolution (Fallback to single winner)
-        # Sort by priority score DESC (post-penalty scores)
-        sorted_votes = sorted(action_votes, key=lambda v: v["priority_score"], reverse=True)
-        top = sorted_votes[0]
-        second = sorted_votes[1] if len(sorted_votes) > 1 else top
-        margin = top["priority_score"] - second["priority_score"]
-
-        # If it's a hold action, we might have no winner
-        if top["proposed_action"] == "hold":
-            return self._empty_result(state.get("tick", 0))
-
-        # Resolution Logic
-        res_method = "highest_score"
-        if margin <= 0.05:
-            # Tiebreak: MELCHIOR decides
-            top = next((v for v in votes if v["agent"] == "MELCHIOR"), top)
-            res_method = "tiebreak"
-
-        # Step 3: Asymmetric Dispatch Calculation
-        target_id = top.get("target_sector")
-        intel_conf = self._get_intel_confidence(state, target_id)
-        dispatch_fraction = self._CONFIDENCE_DISPATCH.get(intel_conf, 0.45)
+        # Step 3: Result Packaging
+        intel_conf = self._get_intel_confidence(state, primary_target)
 
         return {
-            "tick": state["tick"],
+            "tick": state.get("tick", 0),
             "votes": votes,
-            "resolutions": [{
-                "agent": top["agent"],
-                "action": top["proposed_action"],
-                "target": top["target_sector"],
-                "is_joint": False
-            }],
-            "method": res_method,
-            "primary_target": target_id,
-            "dispatch_fraction": dispatch_fraction,
-            "intel_confidence": intel_conf,
-            "held_in_reserve": round(1.0 - dispatch_fraction, 2),
-            "intel_accuracy": self._intel_tracker.get_all_accuracy() if self._intel_tracker else {}
+            "resolutions": resolutions,
+            "method": "commander_decisive_win" if not is_joint else "consensus_joint_op",
+            "primary_target": primary_target,
+            "dispatch_fraction": 1.0, # Handled by ResourceManager now
+            "intel_confidence": intel_conf
         }
 
     def _get_intel_confidence(self, state, target_id):

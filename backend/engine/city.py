@@ -51,9 +51,9 @@ class CityEngine:
             
             fire = sector.get("fire_intensity", 0.0)
 
-            # Fire grows each tick in burning sectors (Slower progression)
+            # Fire grows each tick in burning sectors
             if fire > 0:
-                sector["fire_intensity"] = min(1.0, fire + 0.015)
+                sector["fire_intensity"] = min(1.0, fire + 0.03)
                 if "fire" not in sector["hazards"]:
                     sector["hazards"].append("fire")
                 # Fire damages infrastructure
@@ -77,15 +77,14 @@ class CityEngine:
             if sector["resources_deployed"]["rescue_units"] > 0:
                 fire_fighting_power += 0.05
             
-            # If the area is 'saved' (no more critical/stable civilians), fire decays naturally
-            is_saved = sector["civilians"]["critical"] == 0 and sector["civilians"]["stable"] == 0
-            if is_saved and fire > 0:
-                fire_fighting_power += 0.1
+            # If the area is cleared of vulnerable civilians, decay is very slow (0.01)
+            is_cleared = sector["civilians"]["critical"] == 0 and sector["civilians"]["stable"] == 0
+            if is_cleared and fire > 0:
+                fire_fighting_power += 0.01
             
             if fire_fighting_power > 0 and fire > 0:
-                # Fire fighting and containment: ensures growth (+0.03) is always overpowered
-                # by any active unit or 'saved' status.
-                reduction = max(0.05, fire_fighting_power) 
+                # Actual suppression logic
+                reduction = fire_fighting_power 
                 sector["fire_intensity"] = max(0, sector["fire_intensity"] - reduction)
                 if sector["fire_intensity"] <= 0:
                     sector["hazards"] = [h for h in sector["hazards"] if h != "fire"]
