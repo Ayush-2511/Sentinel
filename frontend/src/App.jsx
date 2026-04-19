@@ -193,35 +193,40 @@ export default function App() {
             </div>
           </div>
 
-          {/* LLM Thinking indicator */}
-          {sock.agentThinking && sock.agentThinking.status === "thinking" && (
-            <div className="shrink-0 flex items-center gap-2 px-4 py-1.5 border-b border-navyBorder bg-[rgba(0,212,184,0.04)]">
-              <div className="flex gap-[3px] items-center">
-                <span className="w-1.5 h-1.5 rounded-full bg-teal animate-pulse-dot"></span>
-                <span className="w-1.5 h-1.5 rounded-full bg-teal animate-pulse-dot" style={{animationDelay:"0.2s"}}></span>
-                <span className="w-1.5 h-1.5 rounded-full bg-teal animate-pulse-dot" style={{animationDelay:"0.4s"}}></span>
-              </div>
-              <span className="font-mono-custom text-[9px] tracking-[2px] text-teal">
-                QUERYING{" "}
-                <span className="font-bold">
-                  {sock.agentThinking.agent === "CASPER"    ? <span className="text-danger">CASPER</span>
-                  : sock.agentThinking.agent === "MELCHIOR"  ? <span className="text-warning">MELCHIOR</span>
-                  :                                            <span className="text-teal">BALTHASAR</span>}
-                </span>
-                {" "}— LLM DELIBERATING…
-              </span>
+          {/* MAP CONTAINER */}
+          <div className="relative flex-1 min-h-0">
+            {/* LLM Thinking indicator Overlay */}
+            <div className="absolute top-0 left-0 right-0 z-[1000] pointer-events-none">
+              {sock.agentThinking && sock.agentThinking.status === "thinking" && (
+                <div className="flex items-center gap-2 px-4 py-1.5 border-b border-navyBorder bg-[rgba(0,212,184,0.04)] backdrop-blur-sm pointer-events-auto">
+                  <div className="flex gap-[3px] items-center">
+                    <span className="w-1.5 h-1.5 rounded-full bg-teal animate-pulse-dot"></span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-teal animate-pulse-dot" style={{animationDelay:"0.2s"}}></span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-teal animate-pulse-dot" style={{animationDelay:"0.4s"}}></span>
+                  </div>
+                  <span className="font-mono-custom text-[9px] tracking-[2px] text-teal">
+                    QUERYING{" "}
+                    <span className="font-bold">
+                      {sock.agentThinking.agent === "CASPER"    ? <span className="text-danger">CASPER</span>
+                      : sock.agentThinking.agent === "MELCHIOR"  ? <span className="text-warning">MELCHIOR</span>
+                      :                                            <span className="text-teal">BALTHASAR</span>}
+                    </span>
+                    {" "}— LLM DELIBERATING…
+                  </span>
+                </div>
+              )}
+              {sock.agentThinking && sock.agentThinking.status === "done" && (
+                <div className="flex items-center gap-2 px-4 py-1.5 border-b border-navyBorder bg-[rgba(0,212,184,0.04)] backdrop-blur-sm pointer-events-auto">
+                  <span className="w-1.5 h-1.5 rounded-full bg-success"></span>
+                  <span className="font-mono-custom text-[9px] tracking-[2px] text-success">
+                    {sock.agentThinking.agent} RESPONDED — AWAITING NEXT AGENT
+                  </span>
+                </div>
+              )}
             </div>
-          )}
-          {sock.agentThinking && sock.agentThinking.status === "done" && (
-            <div className="shrink-0 flex items-center gap-2 px-4 py-1.5 border-b border-navyBorder bg-[rgba(0,212,184,0.04)]">
-              <span className="w-1.5 h-1.5 rounded-full bg-success"></span>
-              <span className="font-mono-custom text-[9px] tracking-[2px] text-success">
-                {sock.agentThinking.agent} RESPONDED — AWAITING NEXT AGENT
-              </span>
-            </div>
-          )}
 
-          <CityMap gridState={sock.gridState} lastWinnerSector={lastWinnerSector} />
+            <CityMap gridState={sock.gridState} lastWinnerSector={lastWinnerSector} />
+          </div>
 
           {/* DECISION LOG */}
           <div className="shrink-0 border-t border-navyBorder bg-navyCard" style={{height:'112px'}}>
