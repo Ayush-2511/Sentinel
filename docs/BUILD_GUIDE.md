@@ -97,7 +97,7 @@ sentinel/
 ### .env.example (commit this)
 ```
 OPENROUTER_API_KEY=your_key_here
-FLASK_PORT=5000
+FLASK_PORT=5001
 TICK_INTERVAL_SECONDS=5
 ```
 
@@ -134,7 +134,7 @@ cd backend && source venv/bin/activate && python app.py
 cd frontend && npm run dev
 ```
 
-Backend → http://localhost:5000
+Backend → http://localhost:5001
 Frontend → http://localhost:5173
 
 ---
@@ -744,7 +744,7 @@ def on_reset():
     socketio.emit("scenario_loaded", None)
 
 if __name__ == "__main__":
-    port = int(os.getenv("FLASK_PORT", 5000))
+    port = int(os.getenv("FLASK_PORT", 5001))
     print(f"SENTINEL backend on http://localhost:{port}")
     socketio.run(app, host="0.0.0.0", port=port, debug=False)
 ```
