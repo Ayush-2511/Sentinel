@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react"
-import { MapContainer, TileLayer, Polygon, Tooltip, useMap } from "react-leaflet"
+import { MapContainer, TileLayer, Polygon, Tooltip, useMap, CircleMarker } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
 
 // Lucknow center coordinates
@@ -93,6 +93,26 @@ export default function CityMap({ gridState, lastWinnerSector }) {
         />
 
         <FitBounds sectors={sectors} />
+
+        {/* Dynamic Epicenter Marker */}
+        {gridState.epicenter && (
+          <CircleMarker
+            center={[gridState.epicenter.lat, gridState.epicenter.lng]}
+            pathOptions={{
+              color: "#EF4444",
+              fillColor: "#EF4444",
+              fillOpacity: gridState.tick <= gridState.epicenter.duration ? 0.6 : 0.2,
+              weight: 2,
+            }}
+            radius={gridState.tick <= gridState.epicenter.duration ? 15 + Math.sin(Date.now() / 200) * 5 : 10}
+          >
+            <Tooltip permanent direction="bottom" className="epicenter-label">
+              <div style={{ color: "#EF4444", fontWeight: "bold", fontSize: "10px", textShadow: "0 0 4px #000" }}>
+                EPICENTER {gridState.tick <= gridState.epicenter.duration ? " (SHAKING)" : ""}
+              </div>
+            </Tooltip>
+          </CircleMarker>
+        )}
 
         {sectors.map(sector => {
           const polygon = sector.polygon

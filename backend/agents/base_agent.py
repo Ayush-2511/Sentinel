@@ -28,8 +28,17 @@ class BaseAgent:
         """Query LLM for a vote on this city state."""
         try:
             prompt = self._build_prompt(state, previous_votes)
+            
+            # Prepend common mission context to system prompt
+            mission_context = (
+                "ACTION GUIDE:\n"
+                "- dispatch_medical: Stabilizes 'Critical' civilians (C). Most effective on medical emergencies.\n"
+                "- dispatch_rescue: Required for 'Collapsed' hazards. Extracts civilians. Provides secondary fire aid.\n"
+                "- dispatch_supply: PRIMARY FIRE SUPPRESSION. Aggressively lowers fire intensity.\n"
+            )
+            
             response = self.llm.invoke([
-                SystemMessage(content=self.SYSTEM_PROMPT),
+                SystemMessage(content=f"{self.SYSTEM_PROMPT}\n\n{mission_context}"),
                 HumanMessage(content=prompt),
             ])
             return self._parse_response(response.content, state["tick"])
@@ -44,28 +53,36 @@ class BaseAgent:
             }
 
     def _build_prompt(self, state: dict, previous_votes: list = None) -> str:
-        """Build a sector-based prompt for the LLM."""
+        """Build a high-density, filtered prompt for the LLM."""
         sectors = state["sectors"]
+        
+        # Filter for Impacted Sectors only (Severity > 1% or active hazards/units)
+        active_sectors = []
+        stable_count = 0
+        for s in sectors:
+            is_active = (
+                s["severity_score"] > 0.01 or 
+                s.get("fire_intensity", 0) > 0 or 
+                any(v > 0 for v in s["resources_deployed"].values())
+            )
+            if is_active:
+                active_sectors.append(s)
+            else:
+                stable_count += 1
 
         sector_lines = []
-        for s in sorted(sectors, key=lambda x: x["severity_score"], reverse=True):
+        for s in sorted(active_sectors, key=lambda x: x["severity_score"], reverse=True):
             civ = s["civilians"]
-            hazard_str = ", ".join(s["hazards"]) if s["hazards"] else "none"
-            deployed_str = ", ".join(
-                f"{v} {k.replace('_', ' ')}" for k, v in s["resources_deployed"].items() if v > 0
-            ) or "none"
-            fire_str = ""
+            hz = ",".join(s["hazards"]) if s["hazards"] else "-"
+            dep = ",".join(f"{v}{k[0].upper()}" for k, v in s["resources_deployed"].items() if v > 0) or "-"
+            
             fire_i = s.get("fire_intensity", 0)
-            spread = s.get("fire_spread_rate", 0)
-            if fire_i > 0:
-                fire_str = f" | FIRE: {fire_i:.0%} intensity"
-            elif spread > 0:
-                fire_str = f" | fire threat: {spread:.0%}"
+            f_str = f" 🔥{fire_i:.0%}" if fire_i > 0 else ""
+            
+            # COMPACT FORMAT: ID (Name) [Crit/Stbl/Resc] | Infra | Hazards | Deployed | Sev
             sector_lines.append(
-                f"  {s['id']} ({s['name']}, {s['type']}): "
-                f"{civ['critical']} critical / {civ['stable']} stable / {civ['rescued']} rescued "
-                f"| infra: {s['infrastructure']} | hazards: {hazard_str} | deployed: {deployed_str} "
-                f"| severity: {s['severity_score']:.2f}{fire_str}"
+                f"  {s['id']} ({s['name']}): [{civ['critical']}C/{civ['stable']}S/{civ['rescued']}R] "
+                f"| INF:{s['infrastructure'][:3]} | HZ:{hz} | DEP:{dep} | SEV:{s['severity_score']:.2f}{f_str}"
             )
 
         coordination_context = ""
@@ -78,17 +95,17 @@ class BaseAgent:
         res = state["global_resources"]
         tc = state["total_civilians"]
 
-        return f"""TICK {state['tick']} — {state.get('city_name', 'City')} DISASTER STATE
+        return f"""TICK {state['tick']} — {state.get('city_name', 'City')} STATE
 {coordination_context}
-SECTORS BY SEVERITY:
+CITY STATUS:
+- Survival: {state['survival_rate'] * 100:.1f}% | Availability: {res['medical_teams']}M, {res['rescue_units']}R, {res['supply_caches']}S
+{f"⚠️ EPICENTER active (Dur: {state['epicenter']['duration'] - state['tick']} ticks)" if state.get("epicenter") and state["tick"] <= state["epicenter"]["duration"] else ""}
+
+IMPACTED SECTORS:
 {chr(10).join(sector_lines)}
+{f"  (+ {stable_count} other sectors are INTACT and SECURE)" if stable_count > 0 else ""}
 
-GLOBAL RESOURCES AVAILABLE:
-  Medical teams:  {res['medical_teams']} (saves critical civilians in a sector)
-  Rescue units:   {res['rescue_units']} (clears collapse, rescues stable civilians, and provides secondary fire suppression)
-  Supply caches:  {res['supply_caches']} (PRIMARY FIRE FIGHTING — strongly reduces fire intensity)
-
-TOTALS: {tc['critical']} critical | {tc['stable']} stable | {tc['rescued']} rescued
+TOTALS: {tc['critical']}C | {tc['stable']}S | {tc['rescued']}R
 SURVIVAL RATE: {state['survival_rate'] * 100:.0f}%
 
 IMPORTANT: Fire spreads to adjacent sectors. ANY UNIT dispatched to a burning sector provides CONTAINMENT, reducing outward spread by 70%. Saving all civilians allows the area to be secured, causing fire to decay naturally even at 100% intensity.

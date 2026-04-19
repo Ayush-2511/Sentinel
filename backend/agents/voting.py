@@ -1,6 +1,6 @@
 """
 SENTINEL — Voting Engine
-Resolves 3 agent votes into one winning action.
+Resolves 3 agent votes into one or more winning actions (Joint Operations).
 """
 
 
@@ -8,57 +8,81 @@ class VotingEngine:
 
     def resolve(self, votes: list, state: dict) -> dict:
         """
-        Resolve 3 agent votes into one winning action.
-        Rules:
-        1. Urgency override: score >= 0.9 wins immediately
-        2. Decisive win: margin > 0.05 over 2nd place
-        3. Tiebreak: MELCHIOR decides
+        Resolve votes. Supports Joint Operations if agents reach consensus on a sector.
         """
         if not votes:
             return self._empty_result()
 
-        # Check unanimity
-        actions = [v["proposed_action"] for v in votes]
-        targets = [v.get("target_sector") for v in votes]
-        is_unanimous = len(set(actions)) == 1 and len(set(targets)) == 1
+        # Step 1: Consensus Check (Multi-Resolution)
+        # If agents agree on the TARGET_SECTOR but want different actions, bundle them.
+        resolutions = []
+        
+        # Group by sector
+        by_sector = {}
+        for v in votes:
+            s_id = v.get("target_sector")
+            if s_id and v["proposed_action"] != "hold":
+                if s_id not in by_sector: by_sector[s_id] = []
+                by_sector[s_id].append(v)
 
+        # Check for Joint Ops (consensus on high-value sectors)
+        for s_id, sector_votes in by_sector.items():
+            # If 2+ agents agree on the sector and it's high priority
+            avg_score = sum(v["priority_score"] for v in sector_votes) / len(sector_votes)
+            if len(sector_votes) >= 2 and avg_score > 0.65:
+                # Joint Operation approved!
+                for v in sector_votes:
+                    resolutions.append({
+                        "agent": v["agent"],
+                        "action": v["proposed_action"],
+                        "target": v["target_sector"],
+                        "is_joint": True
+                    })
+                
+                return {
+                    "tick": state["tick"],
+                    "votes": votes,
+                    "resolutions": resolutions,
+                    "method": "consensus_joint_op",
+                    "primary_target": s_id
+                }
+
+        # Step 2: Individual Resolution (Fallback to single winner)
         # Sort by priority score DESC
         sorted_votes = sorted(votes, key=lambda v: v["priority_score"], reverse=True)
         top = sorted_votes[0]
         second = sorted_votes[1] if len(sorted_votes) > 1 else top
         margin = top["priority_score"] - second["priority_score"]
 
-        if is_unanimous:
-            resolution = "unanimous"
-            winner_vote = top
-        elif top["priority_score"] >= 0.9:
-            resolution = "urgency_override"
-            winner_vote = top
-        elif margin > 0.05:
-            resolution = "highest_score"
-            winner_vote = top
-        else:
-            melchior_vote = next((v for v in votes if v["agent"] == "MELCHIOR"), top)
-            resolution = "tiebreak"
-            winner_vote = melchior_vote
+        # If it's a hold action, we might have no winner
+        if top["proposed_action"] == "hold":
+            return self._empty_result()
+
+        # Resolution Logic
+        res_method = "highest_score"
+        if margin <= 0.05:
+            # Tiebreak: MELCHIOR decides
+            top = next((v for v in votes if v["agent"] == "MELCHIOR"), top)
+            res_method = "tiebreak"
 
         return {
             "tick": state["tick"],
             "votes": votes,
-            "winner": winner_vote["agent"],
-            "winning_action": winner_vote["proposed_action"],
-            "winning_target": winner_vote.get("target_sector"),
-            "resolution_method": resolution,
-            "was_tiebreak": resolution == "tiebreak",
+            "resolutions": [{
+                "agent": top["agent"],
+                "action": top["proposed_action"],
+                "target": top["target_sector"],
+                "is_joint": False
+            }],
+            "method": res_method,
+            "primary_target": top.get("target_sector")
         }
 
     def _empty_result(self):
         return {
             "tick": 0,
             "votes": [],
-            "winner": None,
-            "winning_action": "hold",
-            "winning_target": None,
-            "resolution_method": "no_votes",
-            "was_tiebreak": False,
+            "resolutions": [],
+            "method": "no_votes",
+            "primary_target": None
         }

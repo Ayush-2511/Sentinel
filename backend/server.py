@@ -109,6 +109,7 @@ def _load_scenario_file(name: str) -> dict | None:
         "total_civilians": city_engine._total_civilians(data["sectors"]),
         "survival_rate": 1.0,
         "events": [],
+        "epicenter": data.get("epicenter"),
     }
     return state
 
@@ -241,15 +242,21 @@ def _mock_ai_vote(state_snapshot: dict):
 
         with _lock:
             if sim["state"] is not None:
-                sim["state"] = city_engine.execute_action(
-                    sim["state"],
-                    result["winning_action"],
-                    result.get("winning_target") or "",
-                )
+                for res in result["resolutions"]:
+                    sim["state"] = city_engine.execute_action(
+                        sim["state"],
+                        res["action"],
+                        res["target"]
+                    )
 
         _emit_state()
         socketio.emit("vote_result", result)
-        print(f"[MOCK-AI] Resolved — winner: {result['winner']}, action: {result['winning_action']}")
+        
+        if result["resolutions"]:
+            actions_str = ", ".join([f"{r['agent']}->{r['action']}" for r in result["resolutions"]])
+            print(f"[MOCK-AI] Resolved — {result['method']} | {actions_str}")
+        else:
+            print(f"[MOCK-AI] Resolved — No Action")
 
     except Exception as e:
         print(f"[MOCK-AI] Error: {e}")
@@ -270,6 +277,13 @@ def _ai_vote(state_snapshot: dict):
     try:
         for i, agent in enumerate(agents):
             name = agent_names[i]
+            
+            # Check if simulation is still running before each agent thinks
+            with _lock:
+                if not sim["is_running"]:
+                    print(f"[AI] Deliberation halted - Simulation PAUSED.")
+                    return
+
             socketio.emit("agent_thinking", {"agent": name, "status": "thinking"})
             print(f"[AI] Asking {name}…")
 
@@ -308,15 +322,22 @@ def _ai_vote(state_snapshot: dict):
 
         with _lock:
             if sim["state"] is not None:
-                sim["state"] = city_engine.execute_action(
-                    sim["state"],
-                    result["winning_action"],
-                    result.get("winning_target") or "",
-                )
+                # Apply all winning resolutions (Consensus bundling)
+                for res in result["resolutions"]:
+                    sim["state"] = city_engine.execute_action(
+                        sim["state"],
+                        res["action"],
+                        res["target"]
+                    )
 
         _emit_state()
         socketio.emit("vote_result", result)
-        print(f"[AI] Vote resolved — winner: {result['winner']}, action: {result['winning_action']}")
+
+        if result["resolutions"]:
+            actions_str = ", ".join([f"{r['agent']}->{r['action']}" for r in result["resolutions"]])
+            print(f"[AI] Vote resolved — {result['method']} | {actions_str}")
+        else:
+            print(f"[AI] Vote resolved — No Action")
 
     except Exception as e:
         print(f"[AI] Fatal vote error: {e}")
@@ -375,7 +396,9 @@ def handle_resume():
         sim["state"]["is_running"] = True
 
     _emit_state()
-    threading.Thread(target=_simulation_loop, daemon=True).start()
+    # Restart loop (eventlet for monkeypatch compatibility)
+    import eventlet
+    eventlet.spawn(_simulation_loop)
 
 
 @socketio.on("pause")
@@ -385,6 +408,7 @@ def handle_pause():
         sim["is_running"] = False
         if sim["state"]:
             sim["state"]["is_running"] = False
+        sim["is_thinking"] = False
     _emit_state()
 
 

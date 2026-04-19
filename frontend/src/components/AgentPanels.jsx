@@ -10,7 +10,7 @@ export default function AgentPanels({ voteResult, latestVotes = {}, agentThinkin
     const streamVote   = latestVotes[agentName];
     const vote         = resolvedVote ?? streamVote;
 
-    const isWinner   = voteResult?.winner === agentName;
+    const isWinner   = voteResult?.resolutions?.some(r => r.agent === agentName);
     const isThinking  = agentThinking?.agent === agentName && agentThinking?.status === "thinking";
     const errorInfo   = agentErrors[agentName] ?? null;  // { label, message, code }
 
@@ -45,6 +45,12 @@ export default function AgentPanels({ voteResult, latestVotes = {}, agentThinkin
       {voteResult?.was_tiebreak && (
         <div className="flex items-center gap-1.5 py-1.5 px-3 bg-warningDim border-b border-warning/20 font-mono-custom text-[9px] text-warning tracking-[2px] shrink-0">
           ⚡ SPLIT VOTE — TIEBREAK ACTIVE
+        </div>
+      )}
+
+      {voteResult?.method === "consensus_joint_op" && (
+        <div className="flex items-center gap-1.5 py-1.5 px-3 bg-tealGlow border-b border-teal/20 font-mono-custom text-[9px] text-teal tracking-[2px] shrink-0">
+          🤝 JOINT OPERATION — CONSENSUS MET
         </div>
       )}
 

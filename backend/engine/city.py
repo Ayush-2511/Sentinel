@@ -16,6 +16,11 @@ class CityEngine:
         state["tick"] += 1
 
         sectors = state["sectors"]
+        epicenter = state.get("epicenter")
+
+        # ── Phase 0: Seismic Shockwaves (Transient) ──
+        if epicenter and state["tick"] <= epicenter.get("duration", 0):
+            self._apply_seismic_force(sectors, epicenter, state["tick"])
 
         # ── Phase 1: Fire spread between adjacent sectors ──
         self._spread_fire(sectors)
@@ -24,9 +29,9 @@ class CityEngine:
         for sector in sectors:
             fire = sector.get("fire_intensity", 0.0)
 
-            # Fire grows each tick in burning sectors
+            # Fire grows each tick in burning sectors (Slower progression)
             if fire > 0:
-                sector["fire_intensity"] = min(1.0, fire + 0.03)
+                sector["fire_intensity"] = min(1.0, fire + 0.015)
                 if "fire" not in sector["hazards"]:
                     sector["hazards"].append("fire")
                 # Fire damages infrastructure
@@ -116,11 +121,12 @@ class CityEngine:
                 if (dr + dc) == 1:  # Adjacent (not diagonal)
                     other_fire = other.get("fire_intensity", 0.0)
                     if other_fire == 0:
-                        # NEW: Containment Factor. If source sector has ANY unit, spread chance is cut by 70%.
-                        cont = 0.3 if sum(sector["resources_deployed"].values()) > 0 else 1.0
+                        # NEW: Strict Containment (1-2% spread rate if contained)
+                        # cont = 0.15 if units are present, combined with 0.06 base = ~0.9% max
+                        cont = 0.15 if sum(sector["resources_deployed"].values()) > 0 else 0.8
                         
-                        # Chance to ignite = fire_intensity * 0.08 (Slower spread) * cont
-                        if random.random() < (fire * 0.08 * cont):
+                        # Base spread probability lowered from 0.08 to 0.06
+                        if random.random() < (fire * 0.06 * cont):
                             new_fires.append((other["id"], fire * 0.15))
 
         for sector_id, intensity in new_fires:
@@ -200,15 +206,22 @@ class CityEngine:
         """Check if the simulation should end."""
         total = state["total_civilians"]
         if total["critical"] == 0 and total["stable"] == 0:
-            return True, "ALL CIVILIANS RESCUED OR LOST"
+            return True, "MISSION COMPLETE: ALL CIVILIANS SECURED"
+        
+        # New Condition: Global Severity below 6%
+        sectors = state["sectors"]
+        avg_severity = sum(s["severity_score"] for s in sectors) / len(sectors)
+        if avg_severity < 0.06:
+            return True, "MISSION SUCCESS: DISASTER CONTAINED (Severity < 6%)"
+
         res = state["global_resources"]
         if res["medical_teams"] <= 0 and res["rescue_units"] <= 0 and res["supply_caches"] <= 0:
             any_deployed = any(
                 any(v > 0 for v in s["resources_deployed"].values())
-                for s in state["sectors"]
+                for s in sectors
             )
             if not any_deployed:
-                return True, "ALL RESOURCES EXHAUSTED"
+                return True, "MISSION FAILED: RESOURCES EXHAUSTED"
         return False, ""
 
     # ── Internal helpers ──
@@ -244,6 +257,65 @@ class CityEngine:
         if severity > 0.05:
             return "#0A2010"
         return "#0A1520"
+
+    def _apply_seismic_force(self, sectors, epicenter, tick):
+        """Apply dynamic damage based on proximity to epicenter during the quake (transient)."""
+        epi_lat = epicenter["lat"]
+        epi_lng = epicenter["lng"]
+        mag = epicenter["magnitude"]
+        duration = epicenter["duration"]
+
+        # Time decay: shaking is strongest at the start and tapers off
+        time_factor = max(0.1, (duration - tick + 1) / duration)
+
+        for sector in sectors:
+            # Calculate distance (simple Euclidean for simulation speeds)
+            # Find center of polygon
+            poly = sector["polygon"]
+            lat_sum = sum(p[0] for p in poly)
+            lng_sum = sum(p[1] for p in poly)
+            s_lat = lat_sum / len(poly)
+            s_lng = lng_sum / len(poly)
+
+            # Distance in "degrees" (approximate for Lucknow)
+            dist = max(0.005, ((s_lat - epi_lat)**2 + (s_lng - epi_lng)**2)**0.5)
+            
+            # Recalibrated Force Table
+            # Higher base sensitivity for global attenuation
+            force = (mag * 0.02 * time_factor) / (dist * 12.0)
+            
+            # ── 1. Infrastructure Damage (Lower thresholds for global effect) ──
+            if force > 0.15 and sector["infrastructure"] == "intact":
+                if random.random() < force * 0.4:
+                    sector["infrastructure"] = "damaged"
+            if force > 0.5 and sector["infrastructure"] == "damaged":
+                if random.random() < force * 0.2:
+                    sector["infrastructure"] = "destroyed"
+            
+            # ── 2. Structural Collapse Hazards ──
+            if sector["infrastructure"] != "intact" and "structural_collapse" not in sector["hazards"]:
+                if random.random() < force * 0.4:
+                    sector["hazards"].append("structural_collapse")
+
+            # ── 3. Casualties (Stable -> Critical) ──
+            if sector["civilians"]["stable"] > 0:
+                # Up to 15% of stable civilians become critical per tick near the epicenter
+                base_casualty_rate = 0.15 * force
+                casualties = int(sector["civilians"]["stable"] * base_casualty_rate)
+                if casualties == 0 and random.random() < base_casualty_rate:
+                    casualties = 1
+                
+                casualties = min(casualties, sector["civilians"]["stable"])
+                sector["civilians"]["stable"] -= casualties
+                sector["civilians"]["critical"] += casualties
+
+            # ── 4. Secondary Fires (Broken Gas/Electric) ──
+            # Lower ignition chance (2% max) as requested
+            if "fire" not in sector["hazards"] and sector["infrastructure"] != "intact":
+                fire_prob = min(0.02, force * 0.05)
+                if random.random() < fire_prob:
+                    sector["hazards"].append("fire")
+                    sector["fire_intensity"] = 0.2
 
     def _total_civilians(self, sectors) -> dict:
         totals = {"total": 0, "critical": 0, "stable": 0, "rescued": 0}

@@ -15,24 +15,32 @@ export default function App() {
   const res = sock.gridState?.global_resources || sock.gridState?.resources || {}
   const totalCiv = sock.gridState?.total_civilians || {}
 
-  // Track last winner sector from vote results
+  // Track last winner sector from vote results (Primary target of the round)
   useEffect(() => {
-    if (sock.voteResult?.winning_target) {
-      setLastWinnerSector(sock.voteResult.winning_target)
+    if (sock.voteResult?.primary_target) {
+      setLastWinnerSector(sock.voteResult.primary_target)
     }
   }, [sock.voteResult])
 
-  // Build decision log from live vote history
+  // Build decision log from live vote history (Supporting multi-resolutions)
   const decisionLog = sock.voteHistory.length > 0
     ? sock.voteHistory.slice(-5).reverse().map(v => {
-        const sectorName = sock.gridState?.sectors?.find(s => s.id === v.winning_target)?.name || v.winning_target
+        const sectorName = sock.gridState?.sectors?.find(s => s.id === v.primary_target)?.name || v.primary_target
+        
+        // Form a combined action string if multiple resolutions exist
+        const winners = v.resolutions || []
+        const actionStr = winners.length > 1
+          ? "JOINT OP: " + winners.map(r => r.action.replace('dispatch_', '').toUpperCase()).join(" + ")
+          : winners[0]?.action?.replace('dispatch_', 'DISPATCH ').toUpperCase() || 'HOLD'
+
         return {
           tick: v.tick,
-          winner: v.winner,
-          action: v.winning_action?.replace('dispatch_', 'DISPATCH ').toUpperCase() || 'ACTION',
-          target: v.winning_target,
+          winner: winners.length > 1 ? "CONSENSUS" : (winners[0]?.agent || "SYSTEM"),
+          action: actionStr,
+          target: v.primary_target,
           targetName: sectorName,
-          was_tiebreak: v.was_tiebreak,
+          was_tiebreak: v.method === "tiebreak",
+          isJoint: v.method === "consensus_joint_op"
         }
       })
     : []
@@ -73,11 +81,13 @@ export default function App() {
       <div className="grid h-[calc(100vh-44px)] gap-0" style={{ gridTemplateColumns: "220px 1fr 300px" }}>
 
         {/* SIDEBAR */}
-        <div className="bg-navyCard border-r border-navyBorder flex flex-col overflow-y-auto overflow-x-hidden">
-          <ScenarioSelector onLoad={sock.loadScenario} current={sock.scenario} />
+        <div className="bg-navyCard border-r border-navyBorder flex flex-col overflow-y-auto overflow-x-hidden pt-2">
+          
+          {/* 1. HIGH PRIORITY STATS (Top) */}
+          <SurvivalTracker totalCivilians={totalCiv} />
 
           <>
-            <div className="shrink-0 font-mono-custom text-[9px] tracking-[3px] text-muted px-3.5 pt-3.5 pb-1.5 uppercase border-b border-navyBorder mt-2">RESOURCES</div>
+            <div className="shrink-0 font-mono-custom text-[9px] tracking-[3px] text-muted px-3.5 pt-3.5 pb-1.5 uppercase border-b border-navyBorder">RESOURCES</div>
             <div className="shrink-0 flex items-center justify-between py-2 px-3.5 border-b border-navyBorder">
               <div className="font-mono-custom text-[9px] text-muted tracking-[1px] flex items-center gap-1.5">
                 <span className="text-[11px]">+</span> MEDICAL TEAMS
@@ -104,8 +114,10 @@ export default function App() {
             </div>
           </>
 
-          <SurvivalTracker totalCivilians={totalCiv} />
+          {/* 2. SCENARIO SELECTOR (Compact Dropdown) */}
+          <ScenarioSelector onLoad={sock.loadScenario} current={sock.scenario} />
 
+          {/* 3. EVENT CONTROLS */}
           <EventControls
             onTrigger={sock.triggerEvent}
             onPause={sock.pause}
@@ -216,6 +228,7 @@ export default function App() {
                       {entry.action}
                       {entry.target && <span className={isLatest ? ' text-teal font-bold' : ' text-white'}> → {entry.target} ({entry.targetName})</span>}
                       {entry.was_tiebreak && <span className="ml-2 text-warning text-[9px]">⚡ TIE</span>}
+                      {entry.isJoint && <span className="ml-2 text-teal text-[9px]">🤝 CONSENSUS</span>}
                     </span>
                     {isLatest && <span className="shrink-0 font-mono-custom text-[8px] text-teal/60 tracking-[1px]">● NEW</span>}
                   </div>
@@ -241,7 +254,15 @@ export default function App() {
           </div>
 
           <div className="shrink-0 min-h-[180px] max-h-[240px]">
-            <VoteHistory history={sock.voteHistory} />
+            {sock.voteHistory.length >= 2 ? (
+              <VoteHistory history={sock.voteHistory} />
+            ) : (
+              <div className="h-full flex items-center justify-center p-6 text-center">
+                <div className="font-mono-custom text-[9px] tracking-[2px] text-muted opacity-40 leading-relaxed uppercase">
+                  Comparative Analysis <br/> available after <br/> 2nd decision cycle
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
