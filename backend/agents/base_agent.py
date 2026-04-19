@@ -78,11 +78,14 @@ class BaseAgent:
             
             fire_i = s.get("fire_intensity", 0)
             f_str = f" 🔥{fire_i:.0%}" if fire_i > 0 else ""
+            risk  = s.get("risk_index", 0.0)
+            conf  = s.get("_confidence_tier", "LOW")
             
-            # COMPACT FORMAT: ID (Name) [Crit/Stbl/Resc] | Infra | Hazards | Deployed | Sev
+            # COMPACT FORMAT: ID (Name) [Crit/Stbl/Resc] | Infra | Hazards | Deployed | Sev | Risk | Conf
             sector_lines.append(
                 f"  {s['id']} ({s['name']}): [{civ['critical']}C/{civ['stable']}S/{civ['rescued']}R] "
                 f"| INF:{s['infrastructure'][:3]} | HZ:{hz} | DEP:{dep} | SEV:{s['severity_score']:.2f}{f_str}"
+                f" | RISK:{risk:.2f} | CONF:{conf}"
             )
 
         coordination_context = ""

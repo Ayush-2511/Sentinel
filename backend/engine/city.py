@@ -14,6 +14,10 @@ class CityEngine:
         """Advance simulation by one tick."""
         state = copy.deepcopy(state)
         state["tick"] += 1
+        
+        # Initialize global intel feeds if missing
+        if "intel_feed" not in state:
+            state["intel_feed"] = []
 
         sectors = state["sectors"]
         epicenter = state.get("epicenter")
@@ -27,6 +31,24 @@ class CityEngine:
 
         # ── Phase 2: Per-sector simulation ──
         for sector in sectors:
+            # Initialize Intel Signals if missing
+            if "intel_signals" not in sector:
+                sector["intel_signals"] = {
+                    "sos_count": 0,
+                    "news_confirmed": False,
+                    "infrastructure_alert": sector["infrastructure"] != "intact"
+                }
+            
+            # Auto-update infrastructure alert signal
+            sector["intel_signals"]["infrastructure_alert"] = sector["infrastructure"] != "intact"
+            
+            # Derive confidence tier for this tick
+            sector["_confidence_tier"] = self._derive_confidence(sector)
+
+            # Compute Zone Risk Index (0.0 – 1.0)
+            # A normalized composite score used by agents to rank sectors by urgency.
+            sector["risk_index"] = self._compute_risk_index(sector)
+            
             fire = sector.get("fire_intensity", 0.0)
 
             # Fire grows each tick in burning sectors (Slower progression)
@@ -225,6 +247,63 @@ class CityEngine:
         return False, ""
 
     # ── Internal helpers ──
+
+    def _compute_risk_index(self, sector) -> float:
+        """
+        Zone Risk Index (0.0 – 1.0): A 3-factor composite urgency score.
+
+        Factor 1 — Civilian Factor (weight 0.45):
+            Ratio of critical civilians to total. Peaks at 1.0 when everyone is critical.
+
+        Factor 2 — Hazard Factor (weight 0.35):
+            Combines fire intensity and infrastructure damage level.
+
+        Factor 3 — Resource Coverage Deficit (weight 0.20):
+            Inverse of current unit presence. High score = no units deployed yet.
+        """
+        civ   = sector["civilians"]
+        total = max(civ.get("total", 1), 1)
+        fire  = sector.get("fire_intensity", 0.0)
+        infra = sector.get("infrastructure", "intact")
+        dep   = sum(sector.get("resources_deployed", {}).values())
+
+        # Factor 1: Civilian criticality ratio
+        civilian_factor = civ.get("critical", 0) / total
+
+        # Factor 2: Combined hazard (fire + infrastructure damage)
+        infra_score = {"intact": 0.0, "damaged": 0.5, "destroyed": 1.0}.get(infra, 0.0)
+        hazard_factor = min(1.0, (fire * 0.7) + (infra_score * 0.3))
+
+        # Factor 3: Resource coverage deficit (no units = max urgency)
+        resource_factor = 1.0 if dep == 0 else max(0.0, 1.0 - (dep * 0.25))
+
+        risk = (civilian_factor * 0.45) + (hazard_factor * 0.35) + (resource_factor * 0.20)
+        return round(min(1.0, risk), 3)
+
+    def _derive_confidence(self, sector) -> str:
+        """Determines the surety level of a disaster based on ground signals."""
+        signals = sector.get("intel_signals", {})
+        sos = signals.get("sos_count", 0)
+        news = signals.get("news_confirmed", False)
+        infra = signals.get("infrastructure_alert", False)
+        
+        # HIGH: Verified by multi-factor (News + SOS + Power/Infra failure)
+        # OR confirmed by a physical probe unit (Escalation)
+        if sector.get("_probe_verified", False):
+            return "HIGH"
+            
+        if news and (sos > 5 or infra):
+            return "HIGH"
+            
+        # MEDIUM: News confirmed OR significant citizen reports
+        if news or sos >= 10:
+            return "MEDIUM"
+            
+        # LOW: Sparse reports or no news (Unverified Rumor)
+        if sos > 0 or infra:
+            return "LOW"
+            
+        return "LOW"
 
     def _severity(self, sector) -> float:
         civ = sector["civilians"]
