@@ -88,18 +88,10 @@ class BaseAgent:
                 f" | RISK:{risk:.2f} | CONF:{conf}"
             )
 
-        coordination_context = ""
-        if previous_votes:
-            coordination_context = "\nCURRENT DELIBERATIONS (Other agents have already voted for this turn):\n"
-            for v in previous_votes:
-                coordination_context += f"- {v['agent']}: {v['proposed_action']} to {v['target_sector'] or 'Global'}\n"
-            coordination_context += "\nSTRATEGY: Avoid duplicating the exact same resource type to the same sector unless necessary. Coverage is key.\n"
-
         res = state["global_resources"]
         tc = state["total_civilians"]
 
         return f"""TICK {state['tick']} — {state.get('city_name', 'City')} STATE
-{coordination_context}
 CITY STATUS:
 - Survival: {state['survival_rate'] * 100:.1f}% | Availability: {res['medical_teams']}M, {res['rescue_units']}R, {res['supply_caches']}S
 {f"⚠️ EPICENTER active (Dur: {state['epicenter']['duration'] - state['tick']} ticks)" if state.get("epicenter") and state["tick"] <= state["epicenter"]["duration"] else ""}
